@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+backend/inventory.db
+backend/*.db
+
+# Generated QR codes
+qr_codes/*.png
+qr_codes/*.jpg
+qr_codes/*.jpeg
+
+# Environment variables
+.env
+backend/.env
+server/.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Testing
+coverage/
+.nyc_output
+
+# Build files
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+
+# Security - SSL Certificates (NEVER commit these!)
+backend/ssl/
+backend/*.pem
+backend/cert.pem
+backend/key.pem
+*.key
+*.crt
+*.cer
+
+# Backup files
+*.backup
+*.bak
+*~
+*.old
+backend/server-https.js.backup
+
+# Local config files
+frontend/public/config-simple.js
+frontend/public/config-dynamic.js
+
+# Test files
+frontend/public/test-database.html
+frontend/public/database.html
+frontend/public/network-info.html
+
+# Shell scripts with potential sensitive info
+start-local-server.sh
+view-database.sh
+
+# Server logs
+backend/server.log
+server.log
+*.log
