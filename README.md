@@ -105,7 +105,7 @@ npm run dev
 
 ### Production URLs
 - **Backend API:** https://westo-india.onrender.com
-- **Frontend:** [To be deployed on Netlify]
+- **Frontend:** [To be deployed on Vercel]
 
 ### Deployment Instructions
 
@@ -115,11 +115,12 @@ npm run dev
 3. Use build command: `cd server && npm install && npm run build`
 4. Use start command: `cd server && npm start`
 
-**Frontend (Netlify):**
-1. Connect GitHub repository
-2. Base directory: `client`
-3. Build command: `npm install && npm run build`
-4. Publish directory: `client/dist`
+**Frontend (Vercel):**
+1. Import GitHub repository to Vercel
+2. Root directory: `client`
+3. Framework preset: Vite
+4. Build settings are auto-configured via `vercel.json`
+5. Environment variable: `VITE_API_URL=https://westo-india.onrender.com`
 
 ## 🔐 Environment Variables
 
