@@ -7,8 +7,8 @@ A modern full-stack inventory management system with real-time tracking, employe
 The admin credentials are configured via environment variables for better security.
 
 **Default Login:**
-- Username: `admin`
-- Password: `admin123`
+- Username: `westoindia`
+- Password: `xxxxxxxxx`
 
 To change admin credentials, update these values in the server's `.env` file:
 ```env
@@ -75,7 +75,7 @@ inventory-management/
 
 1. **Clone and install:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/inventory-management.git
+git clone https://github.com/WESTO-INDIA/Inventory-management.git
 cd inventory-management
 ```
 
@@ -99,19 +99,27 @@ npm run dev
 4. **Access:**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:4000
-- GraphQL: http://localhost:4000/graphql
 
-## 🌐 Deployment on Render
 
-### Easy Deploy with render.yaml
+## 🌐 Live Deployment
 
+### Production URLs
+- **Backend API:** https://westo-india.onrender.com
+- **Frontend:** [To be deployed on Netlify]
+
+### Deployment Instructions
+
+**Backend (Render):**
 1. Push code to GitHub
-2. Update `render.yaml` with your repo URL
-3. Go to Render Dashboard → New Blueprint
-4. Connect repository
-5. Deploy automatically
+2. Connect to Render
+3. Use build command: `cd server && npm install && npm run build`
+4. Use start command: `cd server && npm start`
 
-See [DEPLOY.md](./DEPLOY.md) for detailed instructions.
+**Frontend (Netlify):**
+1. Connect GitHub repository
+2. Base directory: `client`
+3. Build command: `npm install && npm run build`
+4. Publish directory: `client/dist`
 
 ## 🔐 Environment Variables
 
@@ -125,9 +133,9 @@ SESSION_SECRET=<generated>
 CLIENT_URL=https://your-frontend.onrender.com
 ```
 
-**Frontend (.env):**
+**Frontend (.env.production):**
 ```
-VITE_API_URL=https://your-backend.onrender.com
+VITE_API_URL=https://westo-india.onrender.com
 ```
 
 ## 📝 License
