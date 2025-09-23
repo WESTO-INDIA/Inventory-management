@@ -25,6 +25,7 @@ export default function QRScanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [qrScanner, setQrScanner] = useState<QrScanner | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -233,47 +234,156 @@ export default function QRScanner() {
   const startCamera = async () => {
     try {
       setIsLoading(true)
+
+      // Check if we're on HTTPS (required for camera on production)
+      const isSecureContext = window.isSecureContext
+      if (!isSecureContext && window.location.hostname !== 'localhost') {
+        throw new Error('Camera requires HTTPS. Please use a secure connection.')
+      }
+
+      // Check camera permissions first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available. Please ensure you are using a modern browser with HTTPS.')
+      }
+
+      // For iOS Safari, we need to handle permissions differently
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+
+      // Request camera permission explicitly with fallback options
+      try {
+        const constraints = {
+          video: isIOS
+            ? { facingMode: { ideal: 'environment' } }
+            : { facingMode: 'environment' },
+          audio: false
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        // Stop the stream immediately as we just needed permission
+        stream.getTracks().forEach(track => track.stop())
+      } catch (permError: any) {
+        if (permError.name === 'NotAllowedError' || permError.name === 'PermissionDeniedError') {
+          throw new Error('Camera permission denied. Please allow camera access and reload the page.')
+        } else if (permError.name === 'NotFoundError' || permError.name === 'DevicesNotFoundError') {
+          throw new Error('No camera found on this device.')
+        } else if (permError.name === 'NotReadableError' || permError.name === 'TrackStartError') {
+          throw new Error('Camera is already in use by another application.')
+        } else if (permError.name === 'OverconstrainedError') {
+          // Try again with basic constraints
+          try {
+            const basicStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            basicStream.getTracks().forEach(track => track.stop())
+          } catch {
+            throw new Error('Camera access failed. Please try using the image upload option.')
+          }
+        } else {
+          throw new Error(`Camera access failed: ${permError.message || 'Please try using the image upload option.'}`)
+        }
+      }
+
       setScanMode(true)
 
+      // Wait for video element to be ready
       await new Promise(resolve => setTimeout(resolve, 100))
 
+      // Clean up any existing scanner
       if (qrScanner) {
         qrScanner.destroy()
         setQrScanner(null)
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
 
       if (!videoRef.current) {
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 300))
         if (!videoRef.current) {
           throw new Error('Video element not ready')
+        }
+      }
+
+      // Create and configure scanner with enhanced options for HTTPS
+      const scannerOptions: any = {
+        returnDetailedScanResult: true,
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        preferredCamera: 'environment',
+        maxScansPerSecond: 2
+      }
+
+      // Only add calculateScanRegion if not on mobile (can cause issues on some devices)
+      if (!isMobile) {
+        scannerOptions.calculateScanRegion = (video: HTMLVideoElement) => {
+          const smallestDimension = Math.min(video.videoWidth, video.videoHeight)
+          const scanRegionSize = Math.round(0.75 * smallestDimension)
+          return {
+            x: Math.round((video.videoWidth - scanRegionSize) / 2),
+            y: Math.round((video.videoHeight - scanRegionSize) / 2),
+            width: scanRegionSize,
+            height: scanRegionSize
+          }
         }
       }
 
       const scanner = new QrScanner(
         videoRef.current,
         async (result) => {
-          scanner.stop()
-          scanner.destroy()
-          setQrScanner(null)
-          setScanMode(false)
+          // Debounce scanning
+          scanner.pause()
 
+          // Process the result
           await processScannedData(result.data)
+
+          // Clean up scanner after successful scan
+          setTimeout(() => {
+            scanner.stop()
+            scanner.destroy()
+            setQrScanner(null)
+            setScanMode(false)
+          }, 100)
         },
-        {
-          returnDetailedScanResult: true,
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          preferredCamera: 'environment',
-          maxScansPerSecond: 1
-        }
+        scannerOptions
       )
 
-      await scanner.start()
-      setQrScanner(scanner)
+      // Start the scanner with fallback
+      try {
+        await scanner.start()
+        setQrScanner(scanner)
+      } catch (startError: any) {
+        console.warn('QR Scanner start failed, trying with fallback options:', startError)
+
+        // Try starting with a different camera if available
+        try {
+          const cameras = await QrScanner.listCameras(true)
+          if (cameras.length > 0) {
+            // Try with the first available camera
+            await scanner.setCamera(cameras[0].id)
+            await scanner.start()
+            setQrScanner(scanner)
+          } else {
+            throw new Error('No cameras available')
+          }
+        } catch (fallbackError) {
+          throw new Error(`Camera initialization failed. Please use the "Upload Image" option to scan QR codes.`)
+        }
+      }
 
     } catch (error: any) {
-      showMessage('error', `Camera error: ${error.message || 'Unknown error'}`)
+      console.error('Camera error:', error)
+
+      let errorMessage = 'Camera error: '
+      if (error.message) {
+        errorMessage = error.message
+      } else {
+        errorMessage += 'Unknown error occurred'
+      }
+
+      showMessage('error', errorMessage)
       setScanMode(false)
+
+      // Clean up on error
+      if (qrScanner) {
+        qrScanner.destroy()
+        setQrScanner(null)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -285,6 +395,33 @@ export default function QRScanner() {
       setQrScanner(null)
     }
     setScanMode(false)
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsLoading(true)
+    try {
+      const result = await QrScanner.scanImage(file, {
+        returnDetailedScanResult: true,
+        alsoTryWithoutScanRegion: true
+      })
+
+      if (result && result.data) {
+        await processScannedData(result.data)
+      } else {
+        showMessage('error', 'No QR code found in the image')
+      }
+    } catch (error) {
+      showMessage('error', 'Failed to scan QR code from image')
+    } finally {
+      setIsLoading(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   return (
@@ -381,6 +518,20 @@ export default function QRScanner() {
                     border: '3px solid #10b981',
                     borderRadius: '8px'
                   }} />
+                  {isLoading && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      left: '10px',
+                      background: 'rgba(0,0,0,0.7)',
+                      color: 'white',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}>
+                      Initializing camera...
+                    </div>
+                  )}
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <button
@@ -398,6 +549,9 @@ export default function QRScanner() {
                   >
                     Stop Camera
                   </button>
+                  <p style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                    Position QR code within the green box
+                  </p>
                 </div>
               </div>
             ) : (
@@ -412,12 +566,39 @@ export default function QRScanner() {
                     borderRadius: '4px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    fontSize: '16px'
+                    fontSize: '16px',
+                    marginRight: '8px'
                   }}
                   disabled={isLoading}
                 >
                   📷 Start Scanner
                 </button>
+
+                {/* File upload option */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                  id="qr-file-upload"
+                />
+                <label
+                  htmlFor="qr-file-upload"
+                  style={{
+                    padding: '12px 24px',
+                    background: 'white',
+                    color: '#000',
+                    border: '2px solid #000',
+                    borderRadius: '4px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    display: 'inline-block'
+                  }}
+                >
+                  📁 Upload Image
+                </label>
               </div>
             )}
 

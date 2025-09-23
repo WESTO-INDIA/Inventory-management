@@ -55,6 +55,7 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    // https: true, // Uncomment this line if you need HTTPS for camera testing
     proxy: {
       '/api': {
         target: 'http://localhost:4000',
