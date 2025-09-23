@@ -1,0 +1,17 @@
+{
+  "name": "QR Inventory Management System",
+  "short_name": "QR Inventory",
+  "description": "QR Inventory Management System",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/fevi.ico",
+      "sizes": "48x48 72x72 96x96 128x128 256x256",
+      "type": "image/x-icon"
+    }
+  ]
+}
