@@ -28,11 +28,11 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={user?.role === 'admin' ? "/admin-dashboard" : "/employee-portal"} />} />
+      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/admin-dashboard" />} />
       
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to={user?.role === 'admin' ? "/admin-dashboard" : "/employee-portal"} />} />
+          <Route path="/" element={<Navigate to="/admin-dashboard" replace />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/inventory" element={<Inventory />} />
@@ -51,7 +51,7 @@ function App() {
         </Route>
       </Route>
       
-      <Route path="*" element={<Navigate to={user?.role === 'admin' ? "/admin-dashboard" : "/employee-portal"} />} />
+      <Route path="*" element={<Navigate to="/admin-dashboard" />} />
     </Routes>
   )
 }

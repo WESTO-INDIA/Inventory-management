@@ -21,7 +21,7 @@ export default function Login() {
 
     try {
       await login(formData.username, formData.password)
-      navigate('/')
+      navigate('/admin-dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')
     }

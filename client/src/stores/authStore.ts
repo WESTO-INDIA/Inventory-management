@@ -18,18 +18,21 @@ interface AuthState {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  loginTimestamp: number | null
   login: (username: string, password: string) => Promise<void>
   logout: () => void
   updateUser: (user: Partial<User>) => void
+  checkSessionExpiry: () => boolean
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      loginTimestamp: null,
 
       login: async (username: string, password: string) => {
         set({ isLoading: true })
@@ -39,7 +42,8 @@ export const useAuthStore = create<AuthState>()(
             user: response.user,
             token: response.token,
             isAuthenticated: true,
-            isLoading: false
+            isLoading: false,
+            loginTimestamp: Date.now()
           })
           toast.success(`Welcome back, ${response.user.name}!`)
         } catch (error: any) {
@@ -53,7 +57,8 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           token: null,
-          isAuthenticated: false
+          isAuthenticated: false,
+          loginTimestamp: null
         })
         toast.success('Logged out successfully')
       },
@@ -62,6 +67,22 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updatedUser } : null
         }))
+      },
+
+      checkSessionExpiry: () => {
+        const state = get()
+        if (!state.loginTimestamp) return true
+
+        const twentyFourHours = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+        const now = Date.now()
+        const isExpired = now - state.loginTimestamp > twentyFourHours
+
+        if (isExpired) {
+          state.logout()
+          toast.error('Session expired. Please login again.')
+        }
+
+        return isExpired
       }
     }),
     {
@@ -69,7 +90,8 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        loginTimestamp: state.loginTimestamp
       })
     }
   )
