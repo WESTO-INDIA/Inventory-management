@@ -1,20 +1,27 @@
 import { Router, Request, Response } from 'express';
 import { Employee } from '../models/Employee';
+import { validateEmployee, validateObjectId } from '../middleware/validator';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-// Get all employees (only active employees)
-router.get('/', async (req: Request, res: Response) => {
+// Get all employees (only active employees, sorted by employeeId)
+router.get('/', authMiddleware.authenticate, async (req: Request, res: Response) => {
   try {
-    const employees = await Employee.find({ status: 'active' }).select('-password');
+    console.log('GET /api/employees - Fetching employees...')
+    const employees = await Employee.find({ status: 'active' })
+      .select('-password')
+      .sort({ employeeId: 1 }); // Sort by employeeId in ascending order
+    console.log('Found employees:', employees.length)
     res.json(employees);
   } catch (error: any) {
+    console.error('Error fetching employees:', error)
     res.status(500).json({ message: error.message });
   }
 });
 
 // Get single employee
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware.authenticate, validateObjectId(), async (req: Request, res: Response) => {
   try {
     const employee = await Employee.findById(req.params.id).select('-password');
     if (!employee) {
@@ -27,15 +34,9 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // Create employee
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authMiddleware.authenticate, validateEmployee, async (req: Request, res: Response) => {
   try {
-    
-    // Ensure required fields are present
-    if (!req.body.username || !req.body.password || !req.body.name || !req.body.dob) {
-      return res.status(400).json({
-        message: 'Username, password, name, and date of birth are required'
-      });
-    }
+    // Note: input is already validated by middleware
     
     const employee = new Employee(req.body);
     await employee.save();
@@ -63,7 +64,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // Update employee
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware.authenticate, validateObjectId(), async (req: Request, res: Response) => {
   try {
     const { password, ...updateData } = req.body;
     
@@ -93,7 +94,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // Update employee password
-router.put('/:id/password', async (req: Request, res: Response) => {
+router.put('/:id/password', authMiddleware.authenticate, validateObjectId(), async (req: Request, res: Response) => {
   try {
     const { newPassword } = req.body;
     const employee = await Employee.findById(req.params.id);
@@ -112,7 +113,7 @@ router.put('/:id/password', async (req: Request, res: Response) => {
 });
 
 // Delete employee (soft delete - changes status to inactive)
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware.authenticate, validateObjectId(), async (req: Request, res: Response) => {
   try {
     const employee = await Employee.findByIdAndUpdate(
       req.params.id,

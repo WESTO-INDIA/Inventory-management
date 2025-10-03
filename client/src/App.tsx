@@ -26,13 +26,24 @@ function App() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
   const user = useAuthStore(state => state.user)
 
+  // Determine default redirect based on user role
+  const getDefaultRoute = () => {
+    if (user?.role === 'employee') {
+      return '/employee-portal'
+    }
+    return '/admin-dashboard'
+  }
+
   return (
     <Routes>
-      <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/admin-dashboard" />} />
-      
+      <Route
+        path="/login"
+        element={!isAuthenticated ? <Login /> : <Navigate to={getDefaultRoute()} />}
+      />
+
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/admin-dashboard" replace />} />
+          <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/inventory" element={<Inventory />} />
@@ -50,8 +61,8 @@ function App() {
           <Route path="/mark-attendance" element={<MarkAttendance />} />
         </Route>
       </Route>
-      
-      <Route path="*" element={<Navigate to="/admin-dashboard" />} />
+
+      <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
     </Routes>
   )
 }

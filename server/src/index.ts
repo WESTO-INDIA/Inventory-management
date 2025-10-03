@@ -1,12 +1,19 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import compression from 'compression'
+import mongoSanitize from 'express-mongo-sanitize'
 import { createServer } from 'http'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import path from 'path'
-import { authMiddleware } from './middleware/auth'
+// Removed unused import: authMiddleware
 import { logger } from './utils/logger'
 import { setupMongoIndexes } from './utils/dbOptimization'
+import { errorHandler, notFoundHandler } from './utils/errorHandler'
+import { apiRateLimiter } from './middleware/rateLimiter'
+import { sanitizeRequest } from './middleware/sanitizer'
+import { validateEnvironment } from './utils/envValidator'
 import apiRoutes from './routes'
 
 // Load environment variables from .env file if it exists
@@ -15,6 +22,9 @@ const result = dotenv.config({ path: path.resolve(__dirname, '../.env') })
 if (result.error) {
   // Only log a warning, don't exit - environment variables might be set directly
 }
+
+// Validate environment variables before starting
+validateEnvironment()
 
 const app = express()
 const httpServer = createServer(app)
@@ -39,7 +49,13 @@ mongoose.connection.on('error', (err) => {
 })
 
 async function startServer() {
-  // Express middleware - CORS configuration
+  // Security middleware - Helmet for security headers
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production',
+    crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production'
+  }))
+
+  // CORS configuration
   app.use(cors({
     origin: process.env.NODE_ENV === 'production'
       ? process.env.CLIENT_URL
@@ -51,8 +67,23 @@ async function startServer() {
     optionsSuccessStatus: 204
   }))
 
+  // Compression middleware for performance
+  app.use(compression())
+
+  // Body parsing middleware
   app.use(express.json({ limit: '10mb' }))
   app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+  // MongoDB injection prevention
+  app.use(mongoSanitize({
+    replaceWith: '_'
+  }))
+
+  // Request sanitization
+  app.use(sanitizeRequest)
+
+  // Rate limiting for API routes
+  app.use('/api', apiRateLimiter)
 
   // REST API routes
   app.use('/api', apiRoutes)
@@ -78,14 +109,11 @@ async function startServer() {
     })
   })
 
-  // Error handling middleware
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error('Unhandled error:', err)
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'development' ? err.message : undefined
-    })
-  })
+  // 404 handler - must be after all routes
+  app.use(notFoundHandler)
+
+  // Global error handling middleware - must be last
+  app.use(errorHandler)
 
   httpServer.listen(PORT, () => {
     logger.info(`🚀 Server ready at http://localhost:${PORT}`)

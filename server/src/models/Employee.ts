@@ -58,7 +58,15 @@ const employeeSchema = new Schema<IEmployee>({
   aadharNumber: {
     type: String,
     trim: true,
-    match: /^\d{12}$/  // Validates 12-digit Aadhar number
+    validate: {
+      validator: function(v: string) {
+        // If empty or null, it's valid (optional field)
+        if (!v || v.trim() === '') return true;
+        // If provided, must be 12 digits
+        return /^\d{12}$/.test(v);
+      },
+      message: 'Aadhar number must be 12 digits'
+    }
   },
   address: {
     street: String,

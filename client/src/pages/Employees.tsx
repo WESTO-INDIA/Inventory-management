@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import '../styles/common.css'
 import { API_URL } from '@/config/api'
 import { compressImage, getBase64SizeInKB } from '@/utils/imageCompression'
+import { useAuthStore } from '@/stores/authStore'
 
 interface Employee {
   _id: string
@@ -27,12 +28,13 @@ interface Employee {
 }
 
 export default function Employees() {
+  const token = useAuthStore(state => state.token)
   const [employees, setEmployees] = useState<Employee[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [photoData, setPhotoData] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -46,24 +48,48 @@ export default function Employees() {
     photo: ''
   })
 
-  useEffect(() => {
-    fetchEmployees()
-  }, [])
+  const fetchEmployees = useCallback(async () => {
+    if (!token) {
+      console.log('No token available, skipping fetch')
+      return
+    }
 
-  const fetchEmployees = async () => {
     setIsLoading(true)
+    console.log('Fetching employees...')
+    console.log('Token:', token ? 'Present' : 'Missing')
+    console.log('API URL:', API_URL)
+
     try {
-      const response = await fetch(`${API_URL}/api/employees`)
+      const response = await fetch(`${API_URL}/api/employees`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      console.log('Response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('Employees fetched:', data.length, 'employees')
+        console.log('Employee data:', data)
         setEmployees(data)
+      } else {
+        console.error('Failed to fetch employees:', response.status, response.statusText)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Error details:', errorData)
+        alert(`Failed to load employees: ${errorData.message || response.statusText}`)
       }
     } catch (error) {
-      // Error fetching employees
+      console.error('Error fetching employees:', error)
+      alert('Network error while fetching employees. Please check if the server is running.')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    fetchEmployees()
+  }, [fetchEmployees])
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,15 +157,18 @@ export default function Employees() {
         employeeData.password = formData.password.trim()
       }
 
-      const url = editingEmployee 
+      const url = editingEmployee
         ? `${API_URL}/api/employees/${editingEmployee._id}`
         : `${API_URL}/api/employees`
-      
+
       const method = editingEmployee ? 'PUT' : 'POST'
-      
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(employeeData)
       })
 
@@ -189,10 +218,13 @@ export default function Employees() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this employee?')) return
-    
+
     try {
       const response = await fetch(`${API_URL}/api/employees/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
       
       if (response.ok) {

@@ -7,6 +7,7 @@ export default function Login() {
   const navigate = useNavigate()
   const login = useAuthStore(state => state.login)
   const isLoading = useAuthStore(state => state.isLoading)
+  const user = useAuthStore(state => state.user)
 
   const [formData, setFormData] = useState({
     username: '',
@@ -21,7 +22,16 @@ export default function Login() {
 
     try {
       await login(formData.username, formData.password)
-      navigate('/admin-dashboard')
+
+      // Get the user from the store after login
+      const currentUser = useAuthStore.getState().user
+
+      // Redirect based on user role
+      if (currentUser?.role === 'employee') {
+        navigate('/employee-portal')
+      } else {
+        navigate('/admin-dashboard')
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed')
     }
