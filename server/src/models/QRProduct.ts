@@ -14,6 +14,10 @@ export interface IQRProduct extends Document {
   generatedDate: string
   cuttingId?: string
   notes?: string
+  pricePerPiece?: number
+  totalPrice?: number
+  companyName?: string
+  companyLogo?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -79,6 +83,26 @@ const QRProductSchema: Schema = new Schema({
   },
   notes: {
     type: String,
+    trim: true
+  },
+  pricePerPiece: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  totalPrice: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  companyName: {
+    type: String,
+    default: 'Westo-India',
+    trim: true
+  },
+  companyLogo: {
+    type: String,
+    default: '🏢',
     trim: true
   }
 }, {

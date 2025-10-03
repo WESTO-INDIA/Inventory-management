@@ -12,6 +12,10 @@ interface ScannedProduct {
   size: string
   currentStock: number
   tailorName: string
+  pricePerPiece?: number
+  totalPrice?: number
+  companyName?: string
+  companyLogo?: string
 }
 
 export default function QRScanner() {
@@ -68,7 +72,11 @@ export default function QRScanner() {
             color: record.fabricColor || 'N/A',
             size: record.size || 'N/A',
             currentStock: record.itemsReceived || 0,
-            tailorName: record.tailorName || 'N/A'
+            tailorName: record.tailorName || 'N/A',
+            pricePerPiece: record.pricePerPiece || 0,
+            totalPrice: record.totalPrice || 0,
+            companyName: 'Westo',
+            companyLogo: '🏢'
           }
         }
       }
@@ -90,7 +98,11 @@ export default function QRScanner() {
             color: qrProduct.color || 'N/A',
             size: qrProduct.size || 'N/A',
             currentStock: qrProduct.quantity || 0,
-            tailorName: qrProduct.tailorName || 'N/A'
+            tailorName: qrProduct.tailorName || 'N/A',
+            pricePerPiece: qrProduct.pricePerPiece || 0,
+            totalPrice: qrProduct.totalPrice || 0,
+            companyName: 'Westo-India',
+            companyLogo: '🏢'
           }
         }
       }
@@ -676,70 +688,126 @@ export default function QRScanner() {
             background: 'white',
             border: '3px solid #000',
             borderRadius: '8px',
-            padding: '24px',
+            padding: '16px',
             width: '90%',
             maxWidth: '500px',
-            maxHeight: '90vh',
+            maxHeight: '95vh',
             overflowY: 'auto',
             zIndex: 1000
           }}>
-            <h2 style={{ marginBottom: '20px', fontSize: '20px', fontWeight: '600', color: '#000' }}>Stock Management</h2>
+            {/* Company Verification Header */}
+            <div style={{
+              padding: '8px 0',
+              marginBottom: '12px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                background: '#000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px',
+                fontSize: '28px',
+                fontWeight: 'bold',
+                color: 'white'
+              }}>
+                W
+              </div>
+              <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#000', marginBottom: '2px' }}>
+                {scannedProduct.companyName || 'Westo-India'}
+              </div>
+              <div style={{ fontSize: '10px', color: '#059669', fontWeight: '600' }}>
+                ✓ Verified Product
+              </div>
+            </div>
+
+            <h2 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: '600', color: '#000', textAlign: 'center' }}>Stock Management</h2>
 
             {/* Product Info */}
             <div style={{
               background: '#f9fafb',
-              padding: '16px',
+              padding: '12px',
               borderRadius: '6px',
-              marginBottom: '20px',
+              marginBottom: '12px',
               border: '2px solid #000'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
                     Manufacturing ID
                   </label>
-                  <div style={{ fontWeight: '600', fontSize: '14px', color: '#000' }}>
+                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#000' }}>
                     {scannedProduct.manufacturingId}
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
                     Current Stock
                   </label>
-                  <div style={{ fontWeight: '700', fontSize: '24px', color: '#10b981' }}>
+                  <div style={{ fontWeight: '700', fontSize: '20px', color: '#10b981' }}>
                     {scannedProduct.currentStock}
                   </div>
                 </div>
               </div>
-              <div style={{ borderTop: '2px solid #000', paddingTop: '12px' }}>
-                <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '8px', color: '#000' }}>
+              <div style={{ borderTop: '2px solid #000', paddingTop: '10px', marginBottom: '10px' }}>
+                <div style={{ fontWeight: '600', fontSize: '15px', marginBottom: '6px', color: '#000' }}>
                   {scannedProduct.productName}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#6b7280' }}>
-                  <span>Type: {scannedProduct.fabricType}</span>
-                  <span>Color: {scannedProduct.color}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '12px', color: '#000', fontWeight: '500' }}>
                   <span>Size: {scannedProduct.size}</span>
+                  <span>Color: {scannedProduct.color}</span>
+                  <span>Type: {scannedProduct.fabricType}</span>
                 </div>
               </div>
+              {/* Price Information */}
+              {(scannedProduct.pricePerPiece || scannedProduct.totalPrice) && (
+                <div style={{ borderTop: '2px solid #000', paddingTop: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                    {scannedProduct.pricePerPiece ? (
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
+                          Price per Piece
+                        </label>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#059669' }}>
+                          ₹{scannedProduct.pricePerPiece.toFixed(2)}
+                        </div>
+                      </div>
+                    ) : null}
+                    {scannedProduct.totalPrice ? (
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '2px' }}>
+                          Total Price
+                        </label>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#059669' }}>
+                          ₹{scannedProduct.totalPrice.toFixed(2)}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stock Action */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#000' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#000' }}>
                 Stock Action
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <button
                   onClick={() => setStockAction('in')}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     border: '2px solid #000',
                     background: stockAction === 'in' ? '#10b981' : 'white',
                     color: stockAction === 'in' ? 'white' : '#000',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontWeight: '600',
-                    fontSize: '14px'
+                    fontSize: '13px'
                   }}
                 >
                   📥 Stock In
@@ -747,14 +815,14 @@ export default function QRScanner() {
                 <button
                   onClick={() => setStockAction('out')}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     border: '2px solid #000',
                     background: stockAction === 'out' ? '#ef4444' : 'white',
                     color: stockAction === 'out' ? 'white' : '#000',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontWeight: '600',
-                    fontSize: '14px'
+                    fontSize: '13px'
                   }}
                 >
                   📤 Stock Out
@@ -763,21 +831,21 @@ export default function QRScanner() {
             </div>
 
             {/* Quantity Input */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#000' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#000' }}>
                 Quantity
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '32px',
+                    height: '32px',
                     borderRadius: '6px',
                     border: '2px solid #000',
                     background: 'white',
                     color: '#000',
-                    fontSize: '18px',
+                    fontSize: '16px',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -789,9 +857,9 @@ export default function QRScanner() {
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   style={{
-                    width: '80px',
-                    padding: '8px',
-                    fontSize: '20px',
+                    width: '70px',
+                    padding: '6px',
+                    fontSize: '18px',
                     fontWeight: '600',
                     textAlign: 'center',
                     border: '2px solid #000',
@@ -804,13 +872,13 @@ export default function QRScanner() {
                 <button
                   onClick={() => setQuantity(quantity + 1)}
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '32px',
+                    height: '32px',
                     borderRadius: '6px',
                     border: '2px solid #000',
                     background: 'white',
                     color: '#000',
-                    fontSize: '18px',
+                    fontSize: '16px',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -824,15 +892,15 @@ export default function QRScanner() {
             <div style={{
               background: stockAction === 'in' ? '#f0fdf4' : '#fef2f2',
               border: '2px solid #000',
-              padding: '12px',
+              padding: '10px',
               borderRadius: '6px',
-              marginBottom: '20px',
+              marginBottom: '12px',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>
                 New Stock After {stockAction === 'in' ? 'Addition' : 'Removal'}
               </div>
-              <div style={{ fontSize: '32px', fontWeight: 'bold', color: stockAction === 'in' ? '#10b981' : '#ef4444' }}>
+              <div style={{ fontSize: '28px', fontWeight: 'bold', color: stockAction === 'in' ? '#10b981' : '#ef4444' }}>
                 {stockAction === 'in'
                   ? scannedProduct.currentStock + quantity
                   : Math.max(0, scannedProduct.currentStock - quantity)}
@@ -840,7 +908,7 @@ export default function QRScanner() {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '8px', flexDirection: isMobile ? 'column' : 'row' }}>
+            <div style={{ display: 'flex', gap: '6px', flexDirection: isMobile ? 'column' : 'row' }}>
               <button
                 onClick={() => {
                   setScannedProduct(null)
@@ -849,14 +917,14 @@ export default function QRScanner() {
                 }}
                 style={{
                   flex: isMobile ? 'auto' : 1,
-                  padding: '12px',
+                  padding: '10px',
                   border: '2px solid #000',
                   background: 'white',
                   color: '#000',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '14px'
+                  fontSize: '13px'
                 }}
               >
                 Cancel
@@ -865,14 +933,14 @@ export default function QRScanner() {
                 onClick={handleStockUpdate}
                 style={{
                   flex: isMobile ? 'auto' : 2,
-                  padding: '12px',
+                  padding: '10px',
                   background: stockAction === 'in' ? '#10b981' : '#ef4444',
                   color: 'white',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: '600',
                   border: '2px solid #000',
-                  fontSize: '14px'
+                  fontSize: '13px'
                 }}
                 disabled={isLoading}
               >
