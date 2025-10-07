@@ -52,29 +52,8 @@ router.post('/', async (req, res) => {
     // Validate required fields
     if (!id || !productId || !fabricType || !fabricColor || !productName ||
         !piecesCount || !pieceLength || !pieceWidth || !totalSquareMetersUsed ||
-        !sizeType || !cuttingMaster || !cuttingGivenTo || !date || !time) {
+        !cuttingMaster || !date || !time) {
       return res.status(400).json({ message: 'Missing required fields' })
-    }
-
-    // Check if fabric exists and has enough quantity
-    const fabric = await Fabric.findOne({ 
-      $or: [
-        { productId: productId },
-        { fabricId: productId }
-      ]
-    })
-    
-    if (!fabric) {
-      return res.status(404).json({ message: 'Fabric not found with the given product ID' })
-    }
-    
-    // Calculate area to decrease (length × width × pieces count)
-    const areaToDecrease = parseFloat(totalSquareMetersUsed)
-    
-    if (fabric.quantity < areaToDecrease) {
-      return res.status(400).json({ 
-        message: `Insufficient fabric quantity. Available: ${fabric.quantity} sq.m, Required: ${areaToDecrease} sq.m` 
-      })
     }
 
     const cuttingRecord = new CuttingRecord({
@@ -89,32 +68,32 @@ router.post('/', async (req, res) => {
       pieceLength: parseFloat(pieceLength),
       pieceWidth: parseFloat(pieceWidth),
       totalSquareMetersUsed: parseFloat(totalSquareMetersUsed),
-      sizeType,
+      sizeType: sizeType || 'Mixed',
+      sizeBreakdown: req.body.sizeBreakdown || [],
       cuttingMaster,
-      cuttingGivenTo,
+      cuttingGivenTo: cuttingGivenTo || '',
       tailorItemPerPiece: parseFloat(tailorItemPerPiece) || 0,
       date,
       time,
-      notes
+      notes: notes || ''
     })
 
-    // Save cutting record first
+    // Save cutting record (no automatic fabric quantity update)
     await cuttingRecord.save()
-    
-    // Update fabric quantity (subtract the area used)
-    fabric.quantity -= areaToDecrease
-    await fabric.save()
-    
+
     res.status(201).json({
-      message: 'Cutting record created successfully and fabric quantity updated',
-      cuttingRecord,
-      fabricRemainingQuantity: fabric.quantity
+      message: 'Cutting record created successfully.',
+      cuttingRecord
     })
   } catch (error: any) {
+    console.error('Error creating cutting record:', error)
     if (error.code === 11000) {
       res.status(400).json({ message: 'Cutting record with this ID already exists' })
+    } else if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((err: any) => err.message).join(', ')
+      res.status(400).json({ message: `Validation error: ${messages}` })
     } else {
-      res.status(500).json({ message: 'Server error' })
+      res.status(500).json({ message: `Server error: ${error.message}` })
     }
   }
 })

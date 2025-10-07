@@ -25,11 +25,9 @@ export default function Layout() {
     navigate('/login')
   }
 
-  // Common menu items for both admin and employees (removed fabric-tracking and view-fabrics)
+  // Common menu items for both admin and employees
   const commonMenuItems = [
-    { path: '/fabric-registration', name: 'Register Fabric', icon: ClipboardDocumentListIcon },
     { path: '/inventory', name: 'Fabric Inventory', icon: CubeIcon },
-    { path: '/cutting', name: 'Cutting', icon: ClipboardDocumentListIcon },
     { path: '/cutting-inventory', name: 'Cutting Inventory', icon: ChartBarIcon },
     { path: '/manufacturing', name: 'Manufacturing', icon: ChartBarIcon },
     { path: '/manufacturing-inventory', name: 'Manufacturing Inventory', icon: ChartBarIcon },
@@ -53,15 +51,13 @@ export default function Layout() {
   // Combine menu items based on role
   const adminMenuItems = [
     adminOnlyItems[0], // Admin Dashboard first
-    commonMenuItems[0], // Register Fabric second
-    ...commonMenuItems.slice(1), // Rest of common items
+    ...commonMenuItems, // All common items
     ...adminOnlyItems.slice(1), // Rest of admin-only items
   ]
 
   const employeeMenuItems = [
     employeeOnlyItems[0], // My Dashboard first
-    commonMenuItems[0], // Register Fabric second
-    ...commonMenuItems.slice(1), // Rest of common items
+    ...commonMenuItems, // All common items
   ]
 
   const menuItems = user?.role === 'admin' ? adminMenuItems : employeeMenuItems

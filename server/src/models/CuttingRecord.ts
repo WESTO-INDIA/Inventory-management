@@ -1,5 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose'
 
+export interface ISizeBreakdown {
+  size: string
+  quantity: number
+}
+
 export interface ICuttingRecord extends Document {
   id: string
   productId: string
@@ -13,6 +18,7 @@ export interface ICuttingRecord extends Document {
   pieceWidth: number
   totalSquareMetersUsed: number
   sizeType: string
+  sizeBreakdown?: ISizeBreakdown[]
   cuttingMaster: string
   cuttingGivenTo: string
   tailorItemPerPiece?: number
@@ -81,9 +87,19 @@ const CuttingRecordSchema: Schema = new Schema({
   },
   sizeType: {
     type: String,
-    required: true,
-    enum: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+    required: false,
+    enum: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Mixed']
   },
+  sizeBreakdown: [{
+    size: {
+      type: String,
+      enum: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+    },
+    quantity: {
+      type: Number,
+      min: 1
+    }
+  }],
   cuttingMaster: {
     type: String,
     required: true,
@@ -91,8 +107,9 @@ const CuttingRecordSchema: Schema = new Schema({
   },
   cuttingGivenTo: {
     type: String,
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: ''
   },
   tailorItemPerPiece: {
     type: Number,

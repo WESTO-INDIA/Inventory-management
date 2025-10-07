@@ -8,11 +8,6 @@ import Login from './pages/Login'
 import AdminDashboard from './pages/AdminDashboard'
 import EmployeePortal from './pages/EmployeePortal'
 import Inventory from './pages/Inventory'
-import AdminFabricTracking from './pages/AdminFabricTracking'
-import EmployeeFabricTracking from './pages/EmployeeFabricTracking'
-import FabricRegistration from './pages/FabricRegistration'
-import ViewFabrics from './pages/ViewFabrics'
-import Cutting from './pages/Cutting'
 import CuttingInventory from './pages/CuttingInventory'
 import Manufacturing from './pages/Manufacturing'
 import ManufacturingInventory from './pages/ManufacturingInventory'
@@ -47,10 +42,6 @@ function App() {
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/inventory" element={<Inventory />} />
-          <Route path="/fabric-tracking" element={user?.role === 'admin' ? <AdminFabricTracking /> : <EmployeeFabricTracking />} />
-          <Route path="/fabric-registration" element={<FabricRegistration />} />
-          <Route path="/view-fabrics" element={<ViewFabrics />} />
-          <Route path="/cutting" element={<Cutting />} />
           <Route path="/cutting-inventory" element={<CuttingInventory />} />
           <Route path="/manufacturing" element={<Manufacturing />} />
           <Route path="/manufacturing-inventory" element={<ManufacturingInventory />} />

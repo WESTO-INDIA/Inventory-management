@@ -17,6 +17,17 @@ interface InventoryItem {
   dateRegistered: string
 }
 
+interface FabricForm {
+  fabricType: string
+  color: string
+  length: string
+  width: string
+  quantity: string
+  supplier: string
+  purchasePrice: string
+  notes: string
+}
+
 export default function Inventory() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
@@ -24,6 +35,17 @@ export default function Inventory() {
   const [isLoading, setIsLoading] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [formData, setFormData] = useState<FabricForm>({
+    fabricType: '',
+    color: '',
+    length: '',
+    width: '',
+    quantity: '',
+    supplier: '',
+    purchasePrice: '',
+    notes: ''
+  })
 
   const generateProductId = (name: string, color: string, quantity: number) => {
     // Get first 3 letters of fabric type (uppercase)
@@ -129,7 +151,7 @@ export default function Inventory() {
         const fabricToUpdate = fabrics.find((fabric: any) =>
           fabric.fabricType === editingItem?.fabricType && fabric.color === editingItem?.color
         )
-        
+
         if (fabricToUpdate) {
           const updateResponse = await fetch(`${API_URL}/api/fabrics/${fabricToUpdate._id}`, {
             method: 'PUT',
@@ -146,7 +168,7 @@ export default function Inventory() {
               notes: updatedItem.notes
             })
           })
-          
+
           if (updateResponse.ok) {
             alert('✅ Item updated successfully!')
             setShowEditModal(false)
@@ -160,6 +182,66 @@ export default function Inventory() {
     } catch (error) {
       alert('❌ Error updating item. Please try again.')
     }
+  }
+
+  const handleAddFabric = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      const response = await fetch(`${API_URL}/api/fabrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (response.ok) {
+        await response.json()
+        alert('✅ Fabric added successfully!')
+
+        // Reset form
+        setFormData({
+          fabricType: '',
+          color: '',
+          length: '',
+          width: '',
+          quantity: '',
+          supplier: '',
+          purchasePrice: '',
+          notes: ''
+        })
+
+        // Close modal
+        setShowAddModal(false)
+
+        // Refresh inventory list
+        fetchInventoryItems()
+      } else {
+        alert('❌ Error adding fabric. Please try again.')
+      }
+    } catch (error) {
+      alert('❌ Error adding fabric. Please try again.')
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    const newFormData = { ...formData, [name]: value }
+
+    // Calculate total quantity automatically when length or width changes
+    if (name === 'length' || name === 'width') {
+      const length = name === 'length' ? parseFloat(value) : parseFloat(formData.length)
+      const width = name === 'width' ? parseFloat(value) : parseFloat(formData.width)
+
+      if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
+        newFormData.quantity = (length * width).toFixed(2)
+      } else {
+        newFormData.quantity = ''
+      }
+    }
+
+    setFormData(newFormData)
   }
 
   return (
@@ -180,18 +262,18 @@ export default function Inventory() {
             />
           </div>
           <div className="filter-group">
-            <button 
+            <button
               className="btn btn-secondary"
               onClick={fetchInventoryItems}
               disabled={isLoading}
             >
               {isLoading ? 'Refreshing...' : 'Refresh'}
             </button>
-            <button 
+            <button
               className="btn btn-primary"
-              onClick={() => navigate('/fabric-registration')}
+              onClick={() => setShowAddModal(true)}
             >
-              Add Product
+              Add Fabric
             </button>
           </div>
         </div>
@@ -382,6 +464,192 @@ export default function Inventory() {
                   onClick={() => {
                     setShowEditModal(false)
                     setEditingItem(null)
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Fabric Modal */}
+      {showAddModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '24px',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#374151', fontSize: '20px', fontWeight: 'bold' }}>Add New Fabric</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleAddFabric}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="modal-fabricType">Fabric Type *</label>
+                  <input
+                    type="text"
+                    id="modal-fabricType"
+                    name="fabricType"
+                    value={formData.fabricType}
+                    onChange={handleChange}
+                    placeholder="e.g., Cotton, Silk, Denim"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-color">Color *</label>
+                  <input
+                    type="text"
+                    id="modal-color"
+                    name="color"
+                    value={formData.color}
+                    onChange={handleChange}
+                    placeholder="e.g., Red, Blue, White"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-length">Length (meters) *</label>
+                  <input
+                    type="number"
+                    id="modal-length"
+                    name="length"
+                    value={formData.length}
+                    onChange={handleChange}
+                    placeholder="Enter length in meters"
+                    min="0.1"
+                    step="0.1"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-width">Width (meters) *</label>
+                  <input
+                    type="number"
+                    id="modal-width"
+                    name="width"
+                    value={formData.width}
+                    onChange={handleChange}
+                    placeholder="Enter width in meters"
+                    min="0.1"
+                    step="0.1"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-quantity">Total Quantity (square meters)</label>
+                  <input
+                    type="text"
+                    id="modal-quantity"
+                    name="quantity"
+                    value={formData.quantity ? `${formData.quantity} sq.m` : ''}
+                    placeholder="Calculated automatically"
+                    readOnly
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-purchasePrice">Purchase Price (per meter)</label>
+                  <input
+                    type="number"
+                    id="modal-purchasePrice"
+                    name="purchasePrice"
+                    value={formData.purchasePrice}
+                    onChange={handleChange}
+                    placeholder="Enter price per meter"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="modal-supplier">Supplier *</label>
+                  <input
+                    type="text"
+                    id="modal-supplier"
+                    name="supplier"
+                    value={formData.supplier}
+                    onChange={handleChange}
+                    placeholder="Supplier name"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="modal-notes">Additional Notes</label>
+                <textarea
+                  id="modal-notes"
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  placeholder="Any additional information about the fabric"
+                  rows={3}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div className="btn-group" style={{ marginTop: '20px' }}>
+                <button type="submit" className="btn btn-primary">
+                  Add Fabric
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setFormData({
+                      fabricType: '',
+                      color: '',
+                      length: '',
+                      width: '',
+                      quantity: '',
+                      supplier: '',
+                      purchasePrice: '',
+                      notes: ''
+                    })
                   }}
                 >
                   Cancel
