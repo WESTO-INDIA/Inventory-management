@@ -11,14 +11,10 @@ interface ManufacturingRecord {
   productName: string
   quantity: number
   size: string
-  quantityReceive: number
-  quantityRemaining: number
-  itemsReceived?: number
-  pricePerPiece?: number
-  totalPrice?: number
-  dateOfReceive: string
+  pricePerPiece: number
+  totalAmount: number
   tailorName: string
-  status: string
+  status: 'Pending' | 'Completed'
   createdAt: string
 }
 
@@ -30,33 +26,10 @@ interface CuttingRecord {
 
 export default function ManufacturingInventory() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
   const [manufacturingRecords, setManufacturingRecords] = useState<ManufacturingRecord[]>([])
-  const [cuttingRecords, setCuttingRecords] = useState<CuttingRecord[]>([])
-  const [priceMap, setPriceMap] = useState<{[key: string]: number}>({})
   const [isLoading, setIsLoading] = useState(false)
   const [editingRecord, setEditingRecord] = useState<ManufacturingRecord | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-
-  const fetchCuttingRecords = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/cutting-records`)
-      if (response.ok) {
-        const records = await response.json()
-        setCuttingRecords(records)
-
-        // Create price map from cutting records
-        const map: {[key: string]: number} = {}
-        records.forEach((record: CuttingRecord) => {
-          if (record.id && record.tailorItemPerPiece) {
-            map[record.id] = record.tailorItemPerPiece
-          }
-        })
-        setPriceMap(map)
-      }
-    } catch (error) {
-    }
-  }
 
   const fetchManufacturingRecords = async () => {
     setIsLoading(true)
@@ -76,7 +49,6 @@ export default function ManufacturingInventory() {
   }
 
   useEffect(() => {
-    fetchCuttingRecords()
     fetchManufacturingRecords()
   }, [])
 
@@ -126,7 +98,7 @@ export default function ManufacturingInventory() {
         },
         body: JSON.stringify(updatedRecord)
       })
-      
+
       if (updateResponse.ok) {
         alert('✅ Manufacturing record updated successfully!')
         setShowEditModal(false)
@@ -140,25 +112,71 @@ export default function ManufacturingInventory() {
     }
   }
 
+  const handleStatusChange = async (record: ManufacturingRecord, newStatus: 'Pending' | 'Completed') => {
+    if (newStatus === 'Completed') {
+      if (!window.confirm(`Mark ${record.manufacturingId} as completed and generate QR code?`)) {
+        return
+      }
+    }
+
+    try {
+      // Update status
+      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (!updateResponse.ok) {
+        alert('❌ Error updating status')
+        return
+      }
+
+      // If completed, generate QR code
+      if (newStatus === 'Completed') {
+        const qrProductData = {
+          productId: record.manufacturingId,
+          manufacturingId: record.manufacturingId,
+          productName: record.productName,
+          color: record.fabricColor,
+          size: record.size,
+          quantity: record.quantity,
+          tailorName: record.tailorName,
+          generatedDate: new Date().toISOString().split('T')[0],
+          cuttingId: record.cuttingId,
+          notes: `Completed on ${new Date().toLocaleDateString()}`
+        }
+
+        const qrResponse = await fetch(`${API_URL}/api/qr-products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(qrProductData)
+        })
+
+        if (qrResponse.ok) {
+          alert('✅ Status updated and QR code generated successfully!')
+        } else {
+          alert('✅ Status updated but failed to generate QR code')
+        }
+      } else {
+        alert('✅ Status updated to Pending')
+      }
+
+      fetchManufacturingRecords()
+    } catch (error) {
+      alert('❌ Error updating status')
+    }
+  }
+
   const filteredRecords = manufacturingRecords.filter(record => {
     const matchesSearch = (record.manufacturingId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (record.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (record.tailorName || '').toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = !filterStatus || record.status === filterStatus
 
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
-
-
-  const getStatusBadgeClass = (status: string) => {
-    switch(status) {
-      case 'Completed': return 'badge-success'
-      case 'In Progress': return 'badge-info'
-      case 'Pending': return 'badge-warning'
-      case 'Cancelled': return 'badge-danger'
-      default: return 'badge-info'
-    }
-  }
 
 
   return (
@@ -181,16 +199,7 @@ export default function ManufacturingInventory() {
             />
           </div>
           <div className="filter-group">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="Completed">Completed</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Pending">Pending</option>
-            </select>
-            <button 
+            <button
               className="btn btn-secondary"
               onClick={fetchManufacturingRecords}
               disabled={isLoading}
@@ -213,61 +222,59 @@ export default function ManufacturingInventory() {
                 <th style={{ textAlign: 'center' }}>Product</th>
                 <th style={{ textAlign: 'center' }}>Qty</th>
                 <th style={{ textAlign: 'center' }}>Size</th>
-                <th style={{ textAlign: 'center' }}>Qty Received</th>
-                <th style={{ textAlign: 'center' }}>Qty Remaining</th>
+                <th style={{ textAlign: 'center' }}>Tailor Name</th>
                 <th style={{ textAlign: 'center' }}>Price/Piece</th>
                 <th style={{ textAlign: 'center' }}>Total Amount</th>
-                <th style={{ textAlign: 'center' }}>Tailor</th>
-                <th style={{ textAlign: 'center' }}>Date Received</th>
+                <th style={{ textAlign: 'center' }}>Date</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => {
-                  // Use itemsReceived for all calculations
-                  const itemsReceived = record.itemsReceived || 0
-                  const quantityRemaining = record.quantity - itemsReceived
-                  const status = quantityRemaining <= 0 ? 'Complete' : 'Pending'
-
-                  // Get price from record or price map
-                  const pricePerPiece = record.pricePerPiece || priceMap[record.cuttingId] || 0
-                  const totalAmount = record.totalPrice || (itemsReceived * pricePerPiece)
-
-                  return (
-                    <tr key={record._id}>
-                      <td style={{ fontWeight: '500', textAlign: 'center' }}>{record.manufacturingId || record.cuttingId}</td>
-                      <td style={{ textAlign: 'center' }}>{record.fabricType || 'N/A'}</td>
-                      <td style={{ textAlign: 'center' }}>{record.fabricColor || 'N/A'}</td>
-                      <td style={{ textAlign: 'center' }}>{record.productName}</td>
-                      <td style={{ textAlign: 'center' }}>{record.quantity}</td>
-                      <td style={{ textAlign: 'center' }}>{record.size || 'N/A'}</td>
-                      <td style={{ textAlign: 'center' }}>{itemsReceived}</td>
-                      <td style={{ textAlign: 'center' }}>{quantityRemaining}</td>
-                      <td style={{ textAlign: 'center' }}>₹{pricePerPiece.toFixed(2)}</td>
-                      <td style={{ textAlign: 'center', fontWeight: '600' }}>₹{totalAmount.toFixed(2)}</td>
-                      <td style={{ textAlign: 'center' }}>{record.tailorName}</td>
-                      <td style={{ textAlign: 'center' }}>{formatDate(record.dateOfReceive)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`badge ${
-                          status === 'Complete' ? 'badge-success' : 'badge-warning'
-                        }`}>
-                          {status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div className="action-buttons">
-                          <button className="action-btn edit" onClick={() => handleEdit(record)}>✏️</button>
-                          <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
+                filteredRecords.map((record) => (
+                  <tr key={record._id}>
+                    <td style={{ fontWeight: '500', textAlign: 'center' }}>{record.manufacturingId}</td>
+                    <td style={{ textAlign: 'center' }}>{record.fabricType}</td>
+                    <td style={{ textAlign: 'center' }}>{record.fabricColor}</td>
+                    <td style={{ textAlign: 'center' }}>{record.productName}</td>
+                    <td style={{ textAlign: 'center' }}>{record.quantity}</td>
+                    <td style={{ textAlign: 'center' }}>{record.size}</td>
+                    <td style={{ textAlign: 'center' }}>{record.tailorName}</td>
+                    <td style={{ textAlign: 'center' }}>₹{record.pricePerPiece.toFixed(2)}</td>
+                    <td style={{ textAlign: 'center', fontWeight: '600', color: '#059669' }}>
+                      ₹{record.totalAmount.toFixed(2)}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <select
+                        value={record.status}
+                        onChange={(e) => handleStatusChange(record, e.target.value as 'Pending' | 'Completed')}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor: record.status === 'Completed' ? '#dcfce7' : '#fef3c7',
+                          color: record.status === 'Completed' ? '#059669' : '#d97706',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="action-buttons">
+                        <button className="action-btn edit" onClick={() => handleEdit(record)}>✏️</button>
+                        <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan={14} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     {isLoading ? 'Loading manufacturing inventory...' : 'No manufacturing inventory records found'}
                   </td>
                 </tr>
@@ -304,43 +311,38 @@ export default function ManufacturingInventory() {
             <form onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
-              const itemsReceived = parseInt(formData.get('itemsReceived') as string) || 0
+              const quantity = parseInt(formData.get('quantity') as string) || 0
               const pricePerPiece = parseFloat(formData.get('pricePerPiece') as string) || 0
               const updatedRecord = {
-                itemsReceived: itemsReceived,
+                quantity: quantity,
                 pricePerPiece: pricePerPiece,
-                totalPrice: itemsReceived * pricePerPiece,
-                tailorName: formData.get('tailorName') as string,
-                dateOfReceive: formData.get('dateOfReceive') as string,
-                status: formData.get('status') as string
+                totalAmount: quantity * pricePerPiece,
+                tailorName: formData.get('tailorName') as string
               }
               handleSaveEdit(updatedRecord)
             }}>
               <div className="form-group">
-                <label htmlFor="itemsReceived">Items Received *</label>
+                <label htmlFor="quantity">Quantity *</label>
                 <input
                   type="number"
-                  id="itemsReceived"
-                  name="itemsReceived"
-                  defaultValue={editingRecord.itemsReceived || 0}
-                  min="0"
-                  max={editingRecord.quantity}
+                  id="quantity"
+                  name="quantity"
+                  defaultValue={editingRecord.quantity}
+                  min="1"
                   required
                 />
-                <small style={{ color: '#6b7280' }}>
-                  Maximum: {editingRecord.quantity} (Total ordered)
-                </small>
               </div>
 
               <div className="form-group">
-                <label htmlFor="pricePerPiece">Price Per Piece (₹)</label>
+                <label htmlFor="pricePerPiece">Price Per Piece (₹) *</label>
                 <input
                   type="number"
                   id="pricePerPiece"
                   name="pricePerPiece"
-                  defaultValue={editingRecord.pricePerPiece || priceMap[editingRecord.cuttingId] || 0}
+                  defaultValue={editingRecord.pricePerPiece}
                   min="0"
                   step="0.01"
+                  required
                 />
               </div>
 
@@ -355,39 +357,12 @@ export default function ManufacturingInventory() {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="dateOfReceive">Date Received *</label>
-                <input
-                  type="date"
-                  id="dateOfReceive"
-                  name="dateOfReceive"
-                  defaultValue={editingRecord.dateOfReceive}
-                  required
-                />
-              </div>
-
-
-              <div className="form-group">
-                <label htmlFor="status">Status *</label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue={editingRecord.status}
-                  required
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-
               <div className="btn-group">
                 <button type="submit" className="btn btn-primary">
                   Save Changes
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-secondary"
                   onClick={() => {
                     setShowEditModal(false)

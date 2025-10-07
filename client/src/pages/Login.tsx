@@ -67,7 +67,7 @@ export default function Login() {
               W
             </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">QR Inventory</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Garment Inventory</h1>
           <p className="text-gray-500 mt-2 text-sm sm:text-base">Welcome back! Please login to continue</p>
         </div>
 

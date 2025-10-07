@@ -30,18 +30,18 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
+      fabricId,
       fabricType,
       color,
       length,
       width,
       quantity,
-      supplier,
       purchasePrice,
       notes
     } = req.body
 
     // Validate required fields
-    if (!fabricType || !color || !length || !width || !quantity || !supplier) {
+    if (!fabricType || !color || !length || !width || !quantity) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
@@ -49,12 +49,12 @@ router.post('/', async (req, res) => {
     const finalQuantity = quantity ? parseFloat(quantity) : parseFloat(length) * parseFloat(width)
 
     const fabric = new Fabric({
+      fabricId: fabricId || undefined,
       fabricType,
       color,
       length: parseFloat(length),
       width: parseFloat(width),
       quantity: finalQuantity,
-      supplier,
       purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
       notes
     })
@@ -65,7 +65,8 @@ router.post('/', async (req, res) => {
       fabric
     })
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error creating fabric:', error)
+    res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
 
@@ -109,7 +110,6 @@ router.put('/:id', async (req, res) => {
       length,
       width,
       quantity,
-      supplier,
       purchasePrice,
       notes
     } = req.body
@@ -120,7 +120,6 @@ router.put('/:id', async (req, res) => {
     fabric.length = length ? parseFloat(length) : fabric.length
     fabric.width = width ? parseFloat(width) : fabric.width
     fabric.quantity = quantity !== undefined ? quantity : fabric.quantity
-    fabric.supplier = supplier || fabric.supplier
     fabric.purchasePrice = purchasePrice ? parseFloat(purchasePrice) : fabric.purchasePrice
     fabric.notes = notes || fabric.notes
 

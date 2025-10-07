@@ -8,17 +8,10 @@ export interface IManufacturingOrder extends Document {
   productName: string
   quantity: number
   size: string
-  quantityReceive: number
-  quantityRemaining: number
-  itemsReceived?: number
-  pricePerPiece?: number
-  totalPrice?: number
-  totalAmount?: number
-  dateOfReceive: string
   tailorName: string
-  priority: 'Low' | 'Normal' | 'High' | 'Urgent'
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Assigned'
-  notes?: string
+  pricePerPiece: number
+  totalAmount: number
+  status: 'Pending' | 'Completed'
   createdAt: Date
   updatedAt: Date
 }
@@ -60,61 +53,28 @@ const ManufacturingOrderSchema: Schema = new Schema({
     required: true,
     trim: true
   },
-  quantityReceive: {
-    type: Number,
-    required: true,
-    min: 0,
-    default: 0
-  },
-  quantityRemaining: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  itemsReceived: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  pricePerPiece: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  totalPrice: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  totalAmount: {
-    type: Number,
-    min: 0,
-    default: 0
-  },
-  dateOfReceive: {
-    type: String,
-    required: true
-  },
   tailorName: {
     type: String,
     required: true,
     trim: true
   },
-  priority: {
-    type: String,
-    required: false,
-    enum: ['Low', 'Normal', 'High', 'Urgent'],
-    default: 'Normal'
+  pricePerPiece: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 0
+  },
+  totalAmount: {
+    type: Number,
+    required: true,
+    min: 0,
+    default: 0
   },
   status: {
     type: String,
     required: true,
-    enum: ['Pending', 'In Progress', 'Completed', 'Cancelled', 'Assigned'],
+    enum: ['Pending', 'Completed'],
     default: 'Pending'
-  },
-  notes: {
-    type: String,
-    trim: true
   }
 }, {
   timestamps: true

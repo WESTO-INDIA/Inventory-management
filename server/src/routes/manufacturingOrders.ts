@@ -89,16 +89,10 @@ router.post('/', async (req, res) => {
       productName,
       quantity: parseInt(quantity),
       size,
-      quantityReceive: 0,
-      quantityRemaining: parseInt(quantity),
-      itemsReceived: 0,
-      pricePerPiece: parseFloat(pricePerPiece) || 0,
-      totalPrice: 0,
-      totalAmount: parseFloat(totalAmount) || 0,
-      dateOfReceive: dateOfReceive || new Date().toISOString().split('T')[0],
       tailorName,
-      priority: 'Normal',
-      status: status || 'Assigned'
+      pricePerPiece: parseFloat(pricePerPiece) || 0,
+      totalAmount: parseFloat(totalAmount) || 0,
+      status: status || 'Pending'
     })
 
     await manufacturingOrder.save()
@@ -112,13 +106,10 @@ router.post('/', async (req, res) => {
         }
       }
       return sb
-    }).filter(sb => sb.quantity > 0) // Remove sizes with 0 quantity
+    })
+    // Keep all sizes including 0 quantity to show in cutting inventory
 
     cuttingRecord.sizeBreakdown = updatedSizeBreakdown
-
-    // Also update piecesRemaining
-    const totalRemaining = updatedSizeBreakdown.reduce((sum, sb) => sum + sb.quantity, 0)
-    cuttingRecord.piecesRemaining = totalRemaining
 
     await cuttingRecord.save()
 
@@ -143,53 +134,25 @@ router.put('/:id', async (req, res) => {
     const {
       fabricType,
       fabricColor,
+      productName,
       quantity,
-      quantityReceive,
-      quantityRemaining,
-      itemsReceived,
-      pricePerPiece,
-      totalPrice,
-      dateOfReceive,
+      size,
       tailorName,
-      priority,
-      status,
-      notes
+      pricePerPiece,
+      totalAmount,
+      status
     } = req.body
 
     // Update fields
     if (fabricType) manufacturingOrder.fabricType = fabricType
     if (fabricColor) manufacturingOrder.fabricColor = fabricColor
+    if (productName) manufacturingOrder.productName = productName
     if (quantity) manufacturingOrder.quantity = parseInt(quantity)
-    if (quantityReceive !== undefined) {
-      manufacturingOrder.quantityReceive = parseInt(quantityReceive)
-    }
-    if (quantityRemaining !== undefined) {
-      manufacturingOrder.quantityRemaining = parseInt(quantityRemaining)
-    }
-    if (itemsReceived !== undefined) {
-      manufacturingOrder.itemsReceived = itemsReceived
-    }
-    if (pricePerPiece !== undefined) {
-      manufacturingOrder.pricePerPiece = pricePerPiece
-    } else if (!manufacturingOrder.pricePerPiece) {
-      // If no price, try to get from cutting record
-      const cuttingRecord = await CuttingRecord.findOne({ id: manufacturingOrder.cuttingId })
-      if (cuttingRecord && cuttingRecord.tailorItemPerPiece) {
-        manufacturingOrder.pricePerPiece = cuttingRecord.tailorItemPerPiece
-      }
-    }
-    if (totalPrice !== undefined) {
-      manufacturingOrder.totalPrice = totalPrice
-    } else {
-      // Auto-calculate total price
-      const items = manufacturingOrder.itemsReceived || manufacturingOrder.quantityReceive || 0
-      manufacturingOrder.totalPrice = items * (manufacturingOrder.pricePerPiece || 0)
-    }
-    if (dateOfReceive) manufacturingOrder.dateOfReceive = dateOfReceive
+    if (size) manufacturingOrder.size = size
     if (tailorName) manufacturingOrder.tailorName = tailorName
-    if (priority) manufacturingOrder.priority = priority
+    if (pricePerPiece !== undefined) manufacturingOrder.pricePerPiece = parseFloat(pricePerPiece)
+    if (totalAmount !== undefined) manufacturingOrder.totalAmount = parseFloat(totalAmount)
     if (status) manufacturingOrder.status = status
-    if (notes !== undefined) manufacturingOrder.notes = notes
 
     await manufacturingOrder.save()
     res.json({
@@ -197,7 +160,8 @@ router.put('/:id', async (req, res) => {
       manufacturingOrder
     })
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error updating manufacturing order:', error)
+    res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
 

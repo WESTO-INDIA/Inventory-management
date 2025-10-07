@@ -25,8 +25,7 @@ interface ManufacturingRecord {
   fabricType?: string
   fabricColor: string
   size: string
-  itemsReceived: number
-  dateOfReceive: string
+  quantity: number
   tailorName: string
   cuttingId: string
   status: string
@@ -59,9 +58,9 @@ export default function QRInventory() {
       if (response.ok) {
         const records = await response.json()
 
-        // Filter only completed or records with items received
+        // Filter only completed manufacturing orders
         const qrEligibleRecords = records.filter((record: ManufacturingRecord) =>
-          record.itemsReceived && record.itemsReceived > 0
+          record.status === 'Completed'
         )
 
         // Convert to QR product format
@@ -72,8 +71,8 @@ export default function QRInventory() {
           fabricType: record.fabricType || 'N/A',
           color: record.fabricColor,
           size: record.size || 'N/A',
-          quantity: record.itemsReceived,
-          generatedDate: record.dateOfReceive,
+          quantity: record.quantity || 0,
+          generatedDate: record.createdAt || new Date().toISOString(),
           tailorName: record.tailorName,
           cuttingId: record.cuttingId,
           createdAt: record.createdAt,
@@ -214,11 +213,22 @@ export default function QRInventory() {
     }
 
     try {
-      // Generate manufacturing-style ID for manual products
-      const productCode = manualFormData.productName.substring(0, 2).toUpperCase() || 'XX'
-      const colorCode = manualFormData.color.substring(0, 2).toUpperCase() || 'XX'
-      const randomNumber = Math.floor(Math.random() * 900) + 100
-      const manualId = `MFG${productCode}${colorCode}${randomNumber}`
+      // Generate MAN0001 style ID for manual products
+      const response = await fetch(`${API_URL}/api/manufacturing-orders`)
+      let manualId = 'MAN0001'
+
+      if (response.ok) {
+        const records = await response.json()
+        const manRecords = records
+          .filter((r: any) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
+          .map((r: any) => {
+            const numPart = r.manufacturingId.replace('MAN', '')
+            return parseInt(numPart) || 0
+          })
+        const maxNum = manRecords.length > 0 ? Math.max(...manRecords) : 0
+        const nextNum = maxNum + 1
+        manualId = `MAN${nextNum.toString().padStart(4, '0')}`
+      }
 
       const newQRProduct = {
         productId: manualId,
@@ -355,8 +365,8 @@ export default function QRInventory() {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>QR Inventory</h1>
-        <p>Manage QR codes for manufactured products</p>
+        <h1>Garment Inventory</h1>
+        <p>Manage garment inventory and QR codes</p>
       </div>
 
       {/* Toolbar */}

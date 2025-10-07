@@ -20,16 +20,48 @@ interface Transaction {
   generatedBy?: string
 }
 
+interface GarmentProduct {
+  _id: string
+  manufacturingId: string
+  productName: string
+  fabricType?: string
+  color: string
+  size: string
+  quantity: number
+}
+
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [filter, setFilter] = useState<'all' | 'add' | 'remove' | 'qr_generated'>('all')
   const [typeFilter, setTypeFilter] = useState<'all' | 'FABRIC' | 'MANUFACTURING' | 'CUTTING' | 'QR_GENERATED'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [showAddStockModal, setShowAddStockModal] = useState(false)
+  const [garmentProducts, setGarmentProducts] = useState<GarmentProduct[]>([])
+  const [stockFormData, setStockFormData] = useState({
+    action: 'STOCK_IN' as 'STOCK_IN' | 'STOCK_OUT',
+    manufacturingId: '',
+    quantity: '',
+    performedBy: ''
+  })
 
   useEffect(() => {
     loadTransactions()
+    loadGarmentProducts()
   }, [])
+
+  const loadGarmentProducts = async () => {
+    try {
+      // Fetch from QR products (manual entries)
+      const qrResponse = await fetch(`${API_URL}/api/qr-products`)
+      if (qrResponse.ok) {
+        const qrProducts = await qrResponse.json()
+        setGarmentProducts(qrProducts)
+      }
+    } catch (error) {
+      console.error('Error loading garment products:', error)
+    }
+  }
 
   const loadTransactions = async () => {
     try {
@@ -65,6 +97,87 @@ export default function Transactions() {
       } catch (error) {
         alert('Failed to clear transactions')
       }
+    }
+  }
+
+  const handleStockTransaction = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!stockFormData.manufacturingId || !stockFormData.quantity || !stockFormData.performedBy) {
+      alert('❌ Please fill in all required fields')
+      return
+    }
+
+    try {
+      // Find the selected product
+      const selectedProduct = garmentProducts.find(p => p.manufacturingId === stockFormData.manufacturingId)
+      if (!selectedProduct) {
+        alert('❌ Product not found')
+        return
+      }
+
+      const quantityChange = parseInt(stockFormData.quantity)
+      const previousStock = selectedProduct.quantity
+      let newStock = previousStock
+
+      if (stockFormData.action === 'STOCK_IN') {
+        newStock = previousStock + quantityChange
+      } else {
+        if (quantityChange > previousStock) {
+          alert(`❌ Cannot remove ${quantityChange} items. Only ${previousStock} available.`)
+          return
+        }
+        newStock = previousStock - quantityChange
+      }
+
+      // Update the QR product quantity
+      const updateResponse = await fetch(`${API_URL}/api/qr-products/${selectedProduct._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newStock })
+      })
+
+      if (!updateResponse.ok) {
+        alert('❌ Failed to update product quantity')
+        return
+      }
+
+      // Create transaction record
+      const transactionData = {
+        itemType: 'MANUFACTURING',
+        itemId: selectedProduct.manufacturingId,
+        itemName: selectedProduct.productName,
+        action: stockFormData.action,
+        quantity: quantityChange,
+        previousStock: previousStock,
+        newStock: newStock,
+        performedBy: stockFormData.performedBy,
+        source: 'MANUAL'
+      }
+
+      const transactionResponse = await fetch(`${API_URL}/api/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transactionData)
+      })
+
+      if (transactionResponse.ok) {
+        alert(`✅ ${stockFormData.action === 'STOCK_IN' ? 'Stock added' : 'Stock removed'} successfully!`)
+        setShowAddStockModal(false)
+        setStockFormData({
+          action: 'STOCK_IN',
+          manufacturingId: '',
+          quantity: '',
+          performedBy: ''
+        })
+        loadTransactions()
+        loadGarmentProducts()
+      } else {
+        alert('❌ Failed to create transaction record')
+      }
+    } catch (error) {
+      console.error('Error processing stock transaction:', error)
+      alert('❌ Error processing stock transaction')
     }
   }
 

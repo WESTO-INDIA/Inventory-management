@@ -11,7 +11,6 @@ interface InventoryItem {
   status: string
   length: number
   width: number
-  supplier: string
   purchasePrice: number
   notes: string
   dateRegistered: string
@@ -23,7 +22,6 @@ interface FabricForm {
   length: string
   width: string
   quantity: string
-  supplier: string
   purchasePrice: string
   notes: string
 }
@@ -42,23 +40,30 @@ export default function Inventory() {
     length: '',
     width: '',
     quantity: '',
-    supplier: '',
     purchasePrice: '',
     notes: ''
   })
 
-  const generateProductId = (name: string, color: string, quantity: number) => {
-    // Get first 3 letters of fabric type (uppercase)
-    const fabricTypeCode = name.substring(0, 3).toUpperCase().padEnd(3, 'X')
-
-    // Generate 5-character alphanumeric serial
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    let serial = ''
-    for (let i = 0; i < 5; i++) {
-      serial += chars.charAt(Math.floor(Math.random() * chars.length))
+  const generateFabricId = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/fabrics`)
+      if (response.ok) {
+        const fabrics = await response.json()
+        const fabRecords = fabrics
+          .filter((f: any) => f.fabricId && f.fabricId.startsWith('FAB'))
+          .map((f: any) => {
+            const numPart = f.fabricId.replace('FAB', '')
+            return parseInt(numPart) || 0
+          })
+        const maxNum = fabRecords.length > 0 ? Math.max(...fabRecords) : 0
+        const nextNum = maxNum + 1
+        return `FAB${nextNum.toString().padStart(4, '0')}`
+      }
+      return 'FAB0001'
+    } catch (error) {
+      console.error('Error generating fabric ID:', error)
+      return 'FAB0001'
     }
-
-    return `${fabricTypeCode}${serial}` // Total 8 characters
   }
 
   const formatDate = (dateString: string) => {
@@ -77,14 +82,13 @@ export default function Inventory() {
       if (response.ok) {
         const fabrics = await response.json()
         const inventoryItems = fabrics.map((fabric: any) => ({
-          id: fabric.productId || generateProductId(fabric.fabricType, fabric.color, Math.floor(fabric.quantity)),
+          id: fabric.fabricId || 'N/A',
           fabricType: fabric.fabricType,
           color: fabric.color,
           quantity: fabric.quantity,
           status: fabric.status,
           length: fabric.length,
           width: fabric.width,
-          supplier: fabric.supplier,
           purchasePrice: fabric.purchasePrice || 0,
           notes: fabric.notes || '',
           dateRegistered: fabric.dateReceived || fabric.createdAt || new Date().toISOString()
@@ -163,7 +167,6 @@ export default function Inventory() {
               color: updatedItem.color,
               length: updatedItem.length,
               width: updatedItem.width,
-              supplier: updatedItem.supplier,
               purchasePrice: updatedItem.purchasePrice,
               notes: updatedItem.notes
             })
@@ -188,17 +191,24 @@ export default function Inventory() {
     e.preventDefault()
 
     try {
+      const fabricId = await generateFabricId()
+
+      const fabricData = {
+        ...formData,
+        fabricId: fabricId
+      }
+
       const response = await fetch(`${API_URL}/api/fabrics`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(fabricData)
       })
 
       if (response.ok) {
         await response.json()
-        alert('✅ Fabric added successfully!')
+        alert(`✅ Fabric added successfully! ID: ${fabricId}`)
 
         // Reset form
         setFormData({
@@ -207,7 +217,6 @@ export default function Inventory() {
           length: '',
           width: '',
           quantity: '',
-          supplier: '',
           purchasePrice: '',
           notes: ''
         })
@@ -363,7 +372,6 @@ export default function Inventory() {
                 color: formData.get('color') as string,
                 length: parseFloat(formData.get('length') as string),
                 width: parseFloat(formData.get('width') as string),
-                supplier: formData.get('supplier') as string,
                 purchasePrice: parseFloat(formData.get('purchasePrice') as string) || 0,
                 notes: formData.get('notes') as string
               }
@@ -414,17 +422,6 @@ export default function Inventory() {
                     defaultValue={editingItem.width}
                     min="0.1"
                     step="0.1"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="supplier">Supplier *</label>
-                  <input
-                    type="text"
-                    id="supplier"
-                    name="supplier"
-                    defaultValue={editingItem.supplier}
                     required
                   />
                 </div>
@@ -604,18 +601,6 @@ export default function Inventory() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="modal-supplier">Supplier *</label>
-                  <input
-                    type="text"
-                    id="modal-supplier"
-                    name="supplier"
-                    value={formData.supplier}
-                    onChange={handleChange}
-                    placeholder="Supplier name"
-                    required
-                  />
-                </div>
               </div>
 
               <div className="form-group">
@@ -646,7 +631,6 @@ export default function Inventory() {
                       length: '',
                       width: '',
                       quantity: '',
-                      supplier: '',
                       purchasePrice: '',
                       notes: ''
                     })

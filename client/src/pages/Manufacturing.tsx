@@ -95,19 +95,19 @@ export default function Manufacturing() {
       if (response.ok) {
         const records = await response.json()
         const mfgRecords = records
-          .filter((r: ManufacturingRecord) => r.manufacturingId && r.manufacturingId.startsWith('MFG'))
+          .filter((r: ManufacturingRecord) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
           .map((r: ManufacturingRecord) => {
-            const numPart = r.manufacturingId.replace('MFG', '')
+            const numPart = r.manufacturingId.replace('MAN', '')
             return parseInt(numPart) || 0
           })
         const maxNum = mfgRecords.length > 0 ? Math.max(...mfgRecords) : 0
         const nextNum = maxNum + 1
-        return `MFG${nextNum.toString().padStart(4, '0')}`
+        return `MAN${nextNum.toString().padStart(4, '0')}`
       }
-      return 'MFG0001'
+      return 'MAN0001'
     } catch (error) {
       console.error('Error generating manufacturing ID:', error)
-      return 'MFG0001'
+      return 'MAN0001'
     }
   }
 
@@ -204,8 +204,7 @@ export default function Manufacturing() {
         tailorName: formData.tailorName,
         pricePerPiece: parseFloat(formData.pricePerPiece) || 0,
         totalAmount: totalAmount,
-        status: 'Assigned',
-        dateOfReceive: new Date().toISOString().split('T')[0]
+        status: 'Pending'
       }
 
       const response = await fetch(`${API_URL}/api/manufacturing-orders`, {
@@ -358,7 +357,7 @@ export default function Manufacturing() {
                 required
               />
               {formData.size && availableSizes.length > 0 && (
-                <small style={{ color: '#059669', fontSize: '12px' }}>
+                <small style={{ color: '#000000', fontSize: '12px' }}>
                   Available for {formData.size}: {availableSizes.find(s => s.size === formData.size)?.remainingQuantity || 0}
                 </small>
               )}
@@ -398,7 +397,7 @@ export default function Manufacturing() {
                 type="text"
                 value={`₹${totalAmount.toFixed(2)}`}
                 readOnly
-                style={{ background: '#f9fafb', color: '#059669', fontWeight: 'bold', fontSize: '16px' }}
+                style={{ background: '#f9fafb', color: '#000000', fontWeight: 'bold', fontSize: '16px' }}
               />
             </div>
           </div>
@@ -467,7 +466,7 @@ export default function Manufacturing() {
                     <td style={{ textAlign: 'center' }}>{record.size}</td>
                     <td style={{ textAlign: 'center' }}>{record.tailorName}</td>
                     <td style={{ textAlign: 'center' }}>₹{record.pricePerPiece}</td>
-                    <td style={{ textAlign: 'center', fontWeight: '600', color: '#059669' }}>
+                    <td style={{ textAlign: 'center', fontWeight: '600', color: '#000000' }}>
                       ₹{record.totalAmount?.toFixed(2) || '0.00'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>

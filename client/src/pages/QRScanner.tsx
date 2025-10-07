@@ -127,7 +127,7 @@ export default function QRScanner() {
 
       const manufacturingId = qrData.manufacturingId || qrData.id || scannedText
 
-      // Fetch product from QR Inventory
+      // Fetch product from Garment Inventory
       const product = await fetchProductFromQRInventory(manufacturingId)
 
       if (product) {
@@ -135,7 +135,7 @@ export default function QRScanner() {
         showMessage('success', `Found: ${product.productName}`)
         return product
       } else {
-        showMessage('error', 'Product not found in QR Inventory')
+        showMessage('error', 'Product not found in Garment Inventory')
         return null
       }
     } catch (error) {

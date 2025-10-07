@@ -10,7 +10,6 @@ interface SizeBreakdown {
 interface CuttingRecord {
   _id?: string
   id: string
-  productId: string
   fabricType: string
   fabricColor: string
   productName: string
@@ -21,11 +20,8 @@ interface CuttingRecord {
   sizeType: string
   sizeBreakdown?: SizeBreakdown[]
   cuttingMaster: string
-  cuttingGivenTo: string
   tailorItemPerPiece?: number
   date: string
-  time: string
-  notes?: string
 }
 
 interface CuttingForm {
@@ -384,7 +380,6 @@ export default function CuttingInventory() {
 
       const cuttingRecord = {
         id: cuttingId,
-        productId: cuttingId, // Use cutting ID as product ID
         fabricType: formData.fabricType,
         fabricColor: formData.fabricColor,
         productName: formData.productName,
@@ -395,11 +390,8 @@ export default function CuttingInventory() {
         sizeType: 'Mixed',
         sizeBreakdown: sizeBreakdown,
         cuttingMaster: formData.cuttingMaster,
-        cuttingGivenTo: '', // Empty string for backend compatibility
         tailorItemPerPiece: parseFloat(formData.tailorItemPerPiece) || 0,
-        date: formData.cuttingDate,
-        time: new Date().toLocaleTimeString(),
-        notes: '' // Empty string for backend compatibility
+        date: formData.cuttingDate
       }
 
       console.log('Sending cutting record:', cuttingRecord)
@@ -456,7 +448,6 @@ export default function CuttingInventory() {
     const matchesSearch = record.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           record.fabricType.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           record.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          record.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (record.sizeType && record.sizeType.toLowerCase().includes(searchTerm.toLowerCase()))
 
     return matchesSearch
@@ -686,6 +677,23 @@ export default function CuttingInventory() {
                 </div>
 
                 <div className="form-group">
+                  <label htmlFor="edit-piecesCount" style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    Total Number of Pieces *
+                  </label>
+                  <input
+                    type="number"
+                    id="edit-piecesCount"
+                    name="piecesCount"
+                    value={editFormData.piecesCount}
+                    onChange={handleEditChange}
+                    placeholder="e.g., 50"
+                    min="1"
+                    required
+                    style={{ fontSize: '14px' }}
+                  />
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="edit-totalSquareMetersUsed">Total Square Meters Used</label>
                   <input
                     type="text"
@@ -697,31 +705,9 @@ export default function CuttingInventory() {
                 </div>
               </div>
 
-              {/* Number of Pieces - Manual Input */}
-              <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-                <div className="form-group">
-                  <label htmlFor="edit-piecesCount" style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>
-                    Total Number of Pieces *
-                    <span style={{ fontSize: '14px', fontWeight: '400', color: '#6b7280', marginLeft: '8px' }}>
-                      (Enter total, then distribute across sizes below)
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    id="edit-piecesCount"
-                    name="piecesCount"
-                    value={editFormData.piecesCount}
-                    onChange={handleEditChange}
-                    placeholder="e.g., 50"
-                    min="1"
-                    required
-                    style={{ fontSize: '16px', fontWeight: '500' }}
-                  />
-                </div>
-              </div>
-
               {/* Size Breakdown Section */}
-              <div style={{ marginTop: '20px', marginBottom: '20px', padding: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+              <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+                <div style={{ padding: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#374151', fontSize: '16px', fontWeight: '600' }}>Size Breakdown *</h3>
 
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-end' }}>
@@ -812,6 +798,7 @@ export default function CuttingInventory() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="form-grid">
@@ -993,6 +980,23 @@ export default function CuttingInventory() {
                 </div>
 
                 <div className="form-group">
+                  <label htmlFor="modal-piecesCount" style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    Total Number of Pieces *
+                  </label>
+                  <input
+                    type="number"
+                    id="modal-piecesCount"
+                    name="piecesCount"
+                    value={formData.piecesCount}
+                    onChange={handleChange}
+                    placeholder="e.g., 50"
+                    min="1"
+                    required
+                    style={{ fontSize: '14px' }}
+                  />
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="modal-totalSquareMetersUsed">Total Square Meters Used</label>
                   <input
                     type="text"
@@ -1004,31 +1008,9 @@ export default function CuttingInventory() {
                 </div>
               </div>
 
-              {/* Number of Pieces - Manual Input */}
-              <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-                <div className="form-group">
-                  <label htmlFor="modal-piecesCount" style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>
-                    Total Number of Pieces *
-                    <span style={{ fontSize: '14px', fontWeight: '400', color: '#6b7280', marginLeft: '8px' }}>
-                      (Enter total, then distribute across sizes below)
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    id="modal-piecesCount"
-                    name="piecesCount"
-                    value={formData.piecesCount}
-                    onChange={handleChange}
-                    placeholder="e.g., 50"
-                    min="1"
-                    required
-                    style={{ fontSize: '16px', fontWeight: '500' }}
-                  />
-                </div>
-              </div>
-
               {/* Size Breakdown Section */}
-              <div style={{ marginTop: '20px', marginBottom: '20px', padding: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+              <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+                <div style={{ padding: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#374151', fontSize: '16px', fontWeight: '600' }}>Size Breakdown *</h3>
 
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-end' }}>
@@ -1119,6 +1101,7 @@ export default function CuttingInventory() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="form-grid">

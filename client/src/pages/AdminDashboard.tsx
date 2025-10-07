@@ -41,9 +41,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [chartData, setChartData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,15 +53,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
-    fetchChartData()
-    
-    // Auto refresh every 30 seconds
-    const refreshInterval = setInterval(() => {
-      setRefreshKey(prev => prev + 1)
-    }, 30000)
-    
-    return () => clearInterval(refreshInterval)
-  }, [refreshKey])
+  }, [])
 
   const fetchDashboardData = async () => {
     try {
@@ -73,19 +63,9 @@ export default function AdminDashboard() {
         setStats(data)
       }
     } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const fetchChartData = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/dashboard/charts`)
-      if (response.ok) {
-        const data = await response.json()
-        setChartData(data)
-      }
-    } catch (error) {
     }
   }
 
@@ -107,12 +87,12 @@ export default function AdminDashboard() {
   }
 
   const quickActions = [
-    { name: 'Register Fabric', icon: '📦', route: '/fabric-registration' },
+    { name: 'Fabric Inventory', icon: '📦', route: '/inventory' },
+    { name: 'Cutting Inventory', icon: '✂️', route: '/cutting-inventory' },
     { name: 'Manufacturing', icon: '🏭', route: '/manufacturing' },
+    { name: 'Garment Inventory', icon: '📱', route: '/generate-qr' },
     { name: 'Employees', icon: '👥', route: '/employees' },
-    { name: 'Tailors', icon: '✂️', route: '/tailor-management' },
-    { name: 'Attendance', icon: '📋', route: '/attendance-view' },
-    { name: 'QR Scanner', icon: '📱', route: '/qr-scanner' }
+    { name: 'Transactions', icon: '💰', route: '/transactions' }
   ]
 
   if (isLoading) {
@@ -136,7 +116,7 @@ export default function AdminDashboard() {
               <h1 className="text-4xl font-bold text-black">
                 Admin Dashboard
               </h1>
-              <p className="mt-2 text-black">Welcome to QR Inventory Management System</p>
+              <p className="mt-2 text-black">Welcome to Garment Inventory Management System</p>
             </div>
             <div className="mt-4 sm:mt-0 text-right">
               <div className="bg-white border-2 border-black text-black px-4 py-2 rounded-lg">
@@ -241,7 +221,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Progress Bars Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-black mb-4">Today's Progress</h3>
           <div className="space-y-4">
@@ -251,7 +231,7 @@ export default function AdminDashboard() {
                 <span className="text-sm font-semibold">{stats?.overview.presentToday || 0}/{stats?.overview.totalEmployees || 0}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-black h-2 rounded-full transition-all duration-500"
                   style={{ width: `${stats?.overview.totalEmployees ? (stats.overview.presentToday / stats.overview.totalEmployees * 100) : 0}%` }}
                 ></div>
@@ -263,7 +243,7 @@ export default function AdminDashboard() {
                 <span className="text-sm font-semibold">{stats?.manufacturing.completionRate || 0}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-black h-2 rounded-full transition-all duration-500"
                   style={{ width: `${stats?.manufacturing.completionRate || 0}%` }}
                 ></div>
@@ -275,7 +255,7 @@ export default function AdminDashboard() {
                 <span className="text-sm font-semibold">{stats?.cutting.today || 0}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-black h-2 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min((stats?.cutting.today || 0) * 10, 100)}%` }}
                 ></div>
@@ -284,35 +264,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Activity Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-black mb-4">Weekly Activity</h3>
-          {chartData && (
-            <div className="space-y-3">
-              {chartData.labels?.map((day: string, index: number) => (
-                <div key={index} className="flex items-center">
-                  <span className="text-xs text-black w-12">{day}</span>
-                  <div className="flex-1 flex items-center gap-2 ml-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 relative overflow-hidden">
-                      <div 
-                        className="absolute left-0 top-0 h-full bg-black rounded-full flex items-center justify-end pr-2 transition-all duration-500"
-                        style={{ width: `${Math.min((chartData.attendance[index] || 0) * 5, 100)}%` }}
-                      >
-                        <span className="text-xs text-white font-semibold">{chartData.attendance[index] || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Recent Activities */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-black mb-4">Recent Activities</h3>
           <div className="space-y-3 max-h-64 overflow-y-auto">
-            {stats?.recentActivities.attendance?.map((activity, index) => (
+            {stats?.recentActivities.attendance?.slice(0, 5).map((activity, index) => (
               <div key={index} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="w-2 h-2 bg-black rounded-full mt-2 animate-pulse"></div>
                 <div className="flex-1">
@@ -322,7 +278,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ))}
-            {stats?.recentActivities.fabrics?.map((fabric, index) => (
+            {stats?.recentActivities.fabrics?.slice(0, 3).map((fabric, index) => (
               <div key={`fabric-${index}`} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="w-2 h-2 bg-black rounded-full mt-2 animate-pulse"></div>
                 <div className="flex-1">

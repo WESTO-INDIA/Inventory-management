@@ -32,7 +32,6 @@ router.post('/', async (req, res) => {
   try {
     const {
       id,
-      productId,
       fabricType,
       fabricColor,
       productName,
@@ -42,40 +41,31 @@ router.post('/', async (req, res) => {
       totalSquareMetersUsed,
       sizeType,
       cuttingMaster,
-      cuttingGivenTo,
       tailorItemPerPiece,
-      date,
-      time,
-      notes
+      date
     } = req.body
 
     // Validate required fields
-    if (!id || !productId || !fabricType || !fabricColor || !productName ||
+    if (!id || !fabricType || !fabricColor || !productName ||
         !piecesCount || !pieceLength || !pieceWidth || !totalSquareMetersUsed ||
-        !cuttingMaster || !date || !time) {
+        !cuttingMaster || !date) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
     const cuttingRecord = new CuttingRecord({
       id,
-      productId,
       fabricType,
       fabricColor,
       productName,
       piecesCount: parseInt(piecesCount),
-      piecesRemaining: parseInt(piecesCount), // Initialize with full count
-      piecesManufactured: 0,
       pieceLength: parseFloat(pieceLength),
       pieceWidth: parseFloat(pieceWidth),
       totalSquareMetersUsed: parseFloat(totalSquareMetersUsed),
       sizeType: sizeType || 'Mixed',
       sizeBreakdown: req.body.sizeBreakdown || [],
       cuttingMaster,
-      cuttingGivenTo: cuttingGivenTo || '',
       tailorItemPerPiece: parseFloat(tailorItemPerPiece) || 0,
-      date,
-      time,
-      notes: notes || ''
+      date
     })
 
     // Save cutting record (no automatic fabric quantity update)
