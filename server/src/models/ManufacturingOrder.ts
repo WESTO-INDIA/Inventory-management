@@ -13,10 +13,11 @@ export interface IManufacturingOrder extends Document {
   itemsReceived?: number
   pricePerPiece?: number
   totalPrice?: number
+  totalAmount?: number
   dateOfReceive: string
   tailorName: string
   priority: 'Low' | 'Normal' | 'High' | 'Urgent'
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'
+  status: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled' | 'Assigned'
   notes?: string
   createdAt: Date
   updatedAt: Date
@@ -85,6 +86,11 @@ const ManufacturingOrderSchema: Schema = new Schema({
     min: 0,
     default: 0
   },
+  totalAmount: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
   dateOfReceive: {
     type: String,
     required: true
@@ -96,14 +102,14 @@ const ManufacturingOrderSchema: Schema = new Schema({
   },
   priority: {
     type: String,
-    required: true,
+    required: false,
     enum: ['Low', 'Normal', 'High', 'Urgent'],
     default: 'Normal'
   },
   status: {
     type: String,
     required: true,
-    enum: ['Pending', 'In Progress', 'Completed', 'Cancelled'],
+    enum: ['Pending', 'In Progress', 'Completed', 'Cancelled', 'Assigned'],
     default: 'Pending'
   },
   notes: {

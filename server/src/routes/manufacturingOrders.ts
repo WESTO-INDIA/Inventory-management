@@ -32,100 +32,103 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const {
-      cuttingId,
-      fabricType,
-      fabricColor,
-      productName,
-      quantity,
-      quantityReceive,
-      itemsReceived,
-      pricePerPiece,
-      totalPrice,
-      dateOfReceive,
-      tailorName,
-      priority,
-      status,
-      notes
-    } = req.body
-
-    // Validate required fields
-    if (!cuttingId || !productName || !quantity || !dateOfReceive || !tailorName || !fabricType || !fabricColor) {
-      return res.status(400).json({ message: 'Missing required fields' })
-    }
-
-    // Get cutting record to get size and price information
-    const cuttingRecord = await CuttingRecord.findOne({ id: cuttingId })
-    if (!cuttingRecord) {
-      return res.status(404).json({ message: 'Cutting record not found' })
-    }
-
-    // Generate manufacturing ID
-    const productCode = productName.substring(0, 2).toUpperCase()
-    const tailorCode = tailorName.substring(0, 2).toUpperCase()
-    const randomNumber = Math.floor(Math.random() * 900) + 100
-    const manufacturingId = `MFG${productCode}${tailorCode}${randomNumber}`
-
-    const quantityReceiveNum = parseInt(quantityReceive) || 0
-    const quantityRemaining = parseInt(quantity) - quantityReceiveNum
-
-    // Auto-detect price from cutting record if not provided
-    const finalPricePerPiece = pricePerPiece !== undefined ? pricePerPiece : (cuttingRecord.tailorItemPerPiece || 0)
-    const finalItemsReceived = itemsReceived || quantityReceiveNum
-    const finalTotalPrice = totalPrice !== undefined ? totalPrice : (finalItemsReceived * finalPricePerPiece)
-
-    const manufacturingOrder = new ManufacturingOrder({
       manufacturingId,
       cuttingId,
       fabricType,
       fabricColor,
       productName,
-      quantity: parseInt(quantity),
-      size: cuttingRecord.sizeType || 'N/A',
-      quantityReceive: quantityReceiveNum,
-      quantityRemaining,
-      itemsReceived: finalItemsReceived,
-      pricePerPiece: finalPricePerPiece,
-      totalPrice: finalTotalPrice,
-      dateOfReceive,
+      quantity,
+      size,
       tailorName,
-      priority: priority || 'Normal',
-      status: status || 'Pending',
-      notes
+      pricePerPiece,
+      totalAmount,
+      status,
+      dateOfReceive
+    } = req.body
+
+    // Validate required fields
+    if (!cuttingId || !productName || !quantity || !size || !tailorName || !fabricType || !fabricColor) {
+      return res.status(400).json({ message: 'Missing required fields' })
+    }
+
+    // Get cutting record to update size breakdown
+    const cuttingRecord = await CuttingRecord.findOne({ id: cuttingId })
+    if (!cuttingRecord) {
+      return res.status(404).json({ message: 'Cutting record not found' })
+    }
+
+    // Check if there's enough quantity for the specified size
+    const sizeBreakdown = cuttingRecord.sizeBreakdown || []
+    const sizeItem = sizeBreakdown.find(sb => sb.size === size)
+
+    if (!sizeItem || sizeItem.quantity < parseInt(quantity)) {
+      return res.status(400).json({
+        message: `Not enough quantity for size ${size}. Available: ${sizeItem?.quantity || 0}, Requested: ${quantity}`
+      })
+    }
+
+    // Use provided manufacturing ID or generate one
+    let finalManufacturingId = manufacturingId
+    if (!finalManufacturingId) {
+      const allOrders = await ManufacturingOrder.find()
+      const mfgIds = allOrders
+        .filter(o => o.manufacturingId && o.manufacturingId.startsWith('MFG'))
+        .map(o => {
+          const numPart = o.manufacturingId.replace('MFG', '')
+          return parseInt(numPart) || 0
+        })
+      const maxNum = mfgIds.length > 0 ? Math.max(...mfgIds) : 0
+      finalManufacturingId = `MFG${(maxNum + 1).toString().padStart(4, '0')}`
+    }
+
+    const manufacturingOrder = new ManufacturingOrder({
+      manufacturingId: finalManufacturingId,
+      cuttingId,
+      fabricType,
+      fabricColor,
+      productName,
+      quantity: parseInt(quantity),
+      size,
+      quantityReceive: 0,
+      quantityRemaining: parseInt(quantity),
+      itemsReceived: 0,
+      pricePerPiece: parseFloat(pricePerPiece) || 0,
+      totalPrice: 0,
+      totalAmount: parseFloat(totalAmount) || 0,
+      dateOfReceive: dateOfReceive || new Date().toISOString().split('T')[0],
+      tailorName,
+      priority: 'Normal',
+      status: status || 'Assigned'
     })
 
     await manufacturingOrder.save()
 
-    // Also create a manufacturing inventory record
-    try {
-      const productId = cuttingRecord?.productId || `PROD${Date.now()}`
+    // Update cutting record size breakdown - decrease the quantity for the assigned size
+    const updatedSizeBreakdown = sizeBreakdown.map(sb => {
+      if (sb.size === size) {
+        return {
+          size: sb.size,
+          quantity: sb.quantity - parseInt(quantity)
+        }
+      }
+      return sb
+    }).filter(sb => sb.quantity > 0) // Remove sizes with 0 quantity
 
-      const manufacturingInventory = new ManufacturingInventory({
-        id: manufacturingId,
-        productId,
-        productName,
-        cuttingId,
-        quantity: parseInt(quantity),
-        quantityProduced: quantityReceiveNum,
-        quantityRemaining,
-        tailorName,
-        startDate: new Date().toISOString().split('T')[0],
-        dueDate: dateOfReceive,
-        priority: priority || 'Normal',
-        status: status || 'Pending',
-        notes
-      })
+    cuttingRecord.sizeBreakdown = updatedSizeBreakdown
 
-      await manufacturingInventory.save()
-    } catch (inventoryError) {
-      // Continue even if inventory creation fails
-    }
+    // Also update piecesRemaining
+    const totalRemaining = updatedSizeBreakdown.reduce((sum, sb) => sum + sb.quantity, 0)
+    cuttingRecord.piecesRemaining = totalRemaining
+
+    await cuttingRecord.save()
 
     res.status(201).json({
       message: 'Manufacturing order created successfully',
       manufacturingOrder
     })
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error creating manufacturing order:', error)
+    res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
 
