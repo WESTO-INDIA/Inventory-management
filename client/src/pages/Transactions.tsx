@@ -373,6 +373,14 @@ export default function Transactions() {
 
           {/* Action Buttons */}
           <button
+            onClick={() => setShowAddStockModal(true)}
+            className="btn btn-primary"
+            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+          >
+            + Add/Remove Stock
+          </button>
+
+          <button
             onClick={loadTransactions}
             className="btn btn-secondary"
           >
@@ -468,6 +476,109 @@ export default function Transactions() {
           </table>
         </div>
       </div>
+
+      {/* Add/Remove Stock Modal */}
+      {showAddStockModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '10px',
+            width: '90%',
+            maxWidth: '500px'
+          }}>
+            <h2 style={{ marginBottom: '20px', color: '#374151' }}>Add/Remove Garment Stock</h2>
+            <form onSubmit={handleStockTransaction}>
+              <div className="form-group">
+                <label htmlFor="action">Action *</label>
+                <select
+                  id="action"
+                  value={stockFormData.action}
+                  onChange={(e) => setStockFormData({...stockFormData, action: e.target.value as 'STOCK_IN' | 'STOCK_OUT'})}
+                  required
+                >
+                  <option value="STOCK_IN">Stock In (Add)</option>
+                  <option value="STOCK_OUT">Stock Out (Remove)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="manufacturingId">Garment Product *</label>
+                <select
+                  id="manufacturingId"
+                  value={stockFormData.manufacturingId}
+                  onChange={(e) => setStockFormData({...stockFormData, manufacturingId: e.target.value})}
+                  required
+                >
+                  <option value="">Select Product</option>
+                  {garmentProducts.map((product) => (
+                    <option key={product._id} value={product.manufacturingId}>
+                      {product.manufacturingId} - {product.productName} ({product.size}) - Stock: {product.quantity}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="quantity">Quantity *</label>
+                <input
+                  type="number"
+                  id="quantity"
+                  value={stockFormData.quantity}
+                  onChange={(e) => setStockFormData({...stockFormData, quantity: e.target.value})}
+                  min="1"
+                  placeholder="Enter quantity"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="performedBy">Performed By *</label>
+                <input
+                  type="text"
+                  id="performedBy"
+                  value={stockFormData.performedBy}
+                  onChange={(e) => setStockFormData({...stockFormData, performedBy: e.target.value})}
+                  placeholder="Enter your name"
+                  required
+                />
+              </div>
+
+              <div className="btn-group">
+                <button type="submit" className="btn btn-primary">
+                  {stockFormData.action === 'STOCK_IN' ? 'Add Stock' : 'Remove Stock'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowAddStockModal(false)
+                    setStockFormData({
+                      action: 'STOCK_IN',
+                      manufacturingId: '',
+                      quantity: '',
+                      performedBy: ''
+                    })
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

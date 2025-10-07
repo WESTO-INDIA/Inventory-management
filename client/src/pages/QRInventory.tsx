@@ -247,7 +247,7 @@ export default function QRInventory() {
       }
 
 
-      const response = await fetch(`${API_URL}/api/qr-products`, {
+      const createResponse = await fetch(`${API_URL}/api/qr-products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -255,9 +255,9 @@ export default function QRInventory() {
         body: JSON.stringify(newQRProduct)
       })
 
-      const data = await response.json()
+      const data = await createResponse.json()
 
-      if (response.ok) {
+      if (createResponse.ok) {
         alert('✅ Product added successfully!')
         setShowManualForm(false)
         setManualFormData({
