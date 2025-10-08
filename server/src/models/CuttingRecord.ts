@@ -18,6 +18,8 @@ export interface ICuttingRecord extends Document {
   sizeBreakdown?: ISizeBreakdown[]
   cuttingMaster: string
   tailorItemPerPiece?: number
+  cuttingGivenTo?: string        // ✅ Added
+  notes?: string 
   date: string
   createdAt: Date
   updatedAt: Date
