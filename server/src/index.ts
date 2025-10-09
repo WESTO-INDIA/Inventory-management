@@ -19,33 +19,9 @@ import apiRoutes from './routes'
 // Load environment variables from .env file if it exists
 // In production, environment variables should be set directly
 const envPath = path.resolve(__dirname, '../.env')
-console.log('Looking for .env file at:', envPath)
-
-// Check if .env file exists and has content
-const fs = require('fs')
-try {
-  const envContent = fs.readFileSync(envPath, 'utf8')
-  console.log('.env file size:', envContent.length, 'bytes')
-  if (envContent.length === 0) {
-    console.log('⚠️  WARNING: .env file is empty! Please add your environment variables to the .env file.')
-    console.log('Example content for .env file:')
-    console.log('MONGODB_URI=mongodb://localhost:27017/inventory')
-    console.log('JWT_SECRET=your-secret-key-here')
-    console.log('ADMIN_USERNAME=your-username')
-    console.log('ADMIN_PASSWORD=your-password')
-  } else {
-    console.log('.env file content preview (first 100 chars):', envContent.substring(0, 100))
-  }
-} catch (error) {
-  console.log('.env file does not exist')
-}
-
 const result = dotenv.config({ path: envPath })
 if (result.error) {
-  console.log('Error loading .env file:', result.error.message)
-} else {
-  console.log('.env file loaded successfully')
-  console.log('Environment variables loaded from .env:', Object.keys(result.parsed || {}))
+  // Only log a warning, don't exit - environment variables might be set directly
 }
 
 // Set default environment variables if not provided (for development)
@@ -60,13 +36,9 @@ const defaults = {
   CLIENT_URL: 'http://localhost:5173'
 }
 
-console.log('Setting defaults for missing environment variables:')
 for (const [key, defaultValue] of Object.entries(defaults)) {
   if (!process.env[key]) {
     process.env[key] = defaultValue
-    console.log(`  ${key}: using default value`)
-  } else {
-    console.log(`  ${key}: using value from environment`)
   }
 }
 

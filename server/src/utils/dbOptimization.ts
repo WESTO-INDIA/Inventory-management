@@ -5,6 +5,9 @@ export async function setupMongoIndexes() {
   try {
     const db = mongoose.connection.db
     
+    // Clean up any problematic indexes first
+    await cleanupProblematicIndexes(db)
+    
     // Users collection indexes
     await db.collection('users').createIndexes([
       { key: { email: 1 }, unique: true },
@@ -15,7 +18,7 @@ export async function setupMongoIndexes() {
     
     // Fabrics collection indexes
     await db.collection('fabrics').createIndexes([
-      { key: { fabricId: 1 }, unique: true },
+      { key: { fabricId: 1 }, unique: true, sparse: true },
       { key: { fabricType: 1, color: 1 } },
       { key: { status: 1 } },
       { key: { quantity: 1 } },
@@ -168,6 +171,38 @@ export const optimizedAggregations = {
       }
     }
   ]
+}
+
+// Clean up problematic indexes
+async function cleanupProblematicIndexes(db: any) {
+  try {
+    // Check and remove the problematic productld_1 index from fabrics collection
+    const fabricsIndexes = await db.collection('fabrics').indexes()
+    const problematicIndex = fabricsIndexes.find((index: any) => index.name === 'productld_1')
+    
+    if (problematicIndex) {
+      logger.info('Found problematic index productld_1, removing it...')
+      await db.collection('fabrics').dropIndex('productld_1')
+      logger.info('Problematic index productld_1 removed successfully')
+    }
+    
+    // Also check for any other problematic indexes that might cause issues
+    const fabricIdIndex = fabricsIndexes.find((index: any) => 
+      index.key && index.key.fabricId && index.unique && !index.sparse
+    )
+    
+    if (fabricIdIndex && fabricIdIndex.name !== 'fabricId_1') {
+      logger.info(`Found non-sparse fabricId index: ${fabricIdIndex.name}, removing it...`)
+      await db.collection('fabrics').dropIndex(fabricIdIndex.name)
+      logger.info(`Non-sparse fabricId index removed successfully`)
+    }
+    
+  } catch (error: any) {
+    // Index might not exist, which is fine
+    if (error.code !== 27 && !error.message.includes('index not found')) {
+      logger.warn('Error during index cleanup:', error.message)
+    }
+  }
 }
 
 // Connection pool monitoring

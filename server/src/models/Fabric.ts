@@ -17,7 +17,8 @@ export interface IFabric extends Document {
 const FabricSchema: Schema = new Schema({
   fabricId: {
     type: String,
-    unique: true
+    unique: true,
+    sparse: true // Allow multiple null values, but unique non-null values
   },
   fabricType: {
     type: String,

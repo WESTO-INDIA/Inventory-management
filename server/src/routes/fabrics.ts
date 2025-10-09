@@ -47,15 +47,22 @@ router.post('/', async (req, res) => {
     // Calculate quantity from length (assuming 1 meter width for square meters)
     const finalQuantity = parseFloat(length)
 
-    const fabric = new Fabric({
-      fabricId: fabricId || undefined,
+    // Only include fabricId if it's provided and not empty
+    const fabricData: any = {
       fabricType,
       color,
       length: parseFloat(length),
       quantity: finalQuantity,
       purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
       notes
-    })
+    }
+    
+    // Only add fabricId if it's a non-empty string
+    if (fabricId && typeof fabricId === 'string' && fabricId.trim().length > 0) {
+      fabricData.fabricId = fabricId.trim()
+    }
+    
+    const fabric = new Fabric(fabricData)
 
     await fabric.save()
     res.status(201).json({
@@ -64,6 +71,15 @@ router.post('/', async (req, res) => {
     })
   } catch (error: any) {
     console.error('Error creating fabric:', error)
+    
+    // Handle duplicate key errors specifically
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field'
+      return res.status(400).json({ 
+        message: `Duplicate ${field}: A fabric with this ${field} already exists` 
+      })
+    }
+    
     res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
