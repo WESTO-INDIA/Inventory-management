@@ -5,7 +5,6 @@ export interface IFabric extends Document {
   fabricType: string
   color: string
   length: number
-  width: number
   quantity: number
   purchasePrice?: number
   notes?: string
@@ -31,11 +30,6 @@ const FabricSchema: Schema = new Schema({
     trim: true
   },
   length: {
-    type: Number,
-    required: true,
-    min: 0.1
-  },
-  width: {
     type: Number,
     required: true,
     min: 0.1

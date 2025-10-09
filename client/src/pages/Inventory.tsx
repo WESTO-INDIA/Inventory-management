@@ -10,7 +10,6 @@ interface InventoryItem {
   quantity: number
   status: string
   length: number
-  width: number
   purchasePrice: number
   notes: string
   dateRegistered: string
@@ -20,8 +19,6 @@ interface FabricForm {
   fabricType: string
   color: string
   length: string
-  width: string
-  quantity: string
   purchasePrice: string
   notes: string
 }
@@ -38,8 +35,6 @@ export default function Inventory() {
     fabricType: '',
     color: '',
     length: '',
-    width: '',
-    quantity: '',
     purchasePrice: '',
     notes: ''
   })
@@ -88,7 +83,6 @@ export default function Inventory() {
           quantity: fabric.quantity,
           status: fabric.status,
           length: fabric.length,
-          width: fabric.width,
           purchasePrice: fabric.purchasePrice || 0,
           notes: fabric.notes || '',
           dateRegistered: fabric.dateReceived || fabric.createdAt || new Date().toISOString()
@@ -166,7 +160,6 @@ export default function Inventory() {
               fabricType: updatedItem.fabricType,
               color: updatedItem.color,
               length: updatedItem.length,
-              width: updatedItem.width,
               purchasePrice: updatedItem.purchasePrice,
               notes: updatedItem.notes
             })
@@ -198,6 +191,8 @@ export default function Inventory() {
         fabricId: fabricId
       }
 
+      console.log('Sending fabric data:', fabricData)
+
       const response = await fetch(`${API_URL}/api/fabrics`, {
         method: 'POST',
         headers: {
@@ -215,8 +210,6 @@ export default function Inventory() {
           fabricType: '',
           color: '',
           length: '',
-          width: '',
-          quantity: '',
           purchasePrice: '',
           notes: ''
         })
@@ -227,10 +220,13 @@ export default function Inventory() {
         // Refresh inventory list
         fetchInventoryItems()
       } else {
-        alert('❌ Error adding fabric. Please try again.')
+        const errorData = await response.json()
+        console.error('Fabric registration error:', errorData)
+        alert(`❌ Error adding fabric: ${errorData.message || 'Please try again.'}`)
       }
     } catch (error) {
-      alert('❌ Error adding fabric. Please try again.')
+      console.error('Fabric registration error:', error)
+      alert(`❌ Error adding fabric: ${error instanceof Error ? error.message : 'Please try again.'}`)
     }
   }
 
@@ -238,17 +234,7 @@ export default function Inventory() {
     const { name, value } = e.target
     const newFormData = { ...formData, [name]: value }
 
-    // Calculate total quantity automatically when length or width changes
-    if (name === 'length' || name === 'width') {
-      const length = name === 'length' ? parseFloat(value) : parseFloat(formData.length)
-      const width = name === 'width' ? parseFloat(value) : parseFloat(formData.width)
 
-      if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
-        newFormData.quantity = (length * width).toFixed(2)
-      } else {
-        newFormData.quantity = ''
-      }
-    }
 
     setFormData(newFormData)
   }
@@ -371,7 +357,6 @@ export default function Inventory() {
                 fabricType: formData.get('fabricType') as string,
                 color: formData.get('color') as string,
                 length: parseFloat(formData.get('length') as string),
-                width: parseFloat(formData.get('width') as string),
                 purchasePrice: parseFloat(formData.get('purchasePrice') as string) || 0,
                 notes: formData.get('notes') as string
               }
@@ -413,18 +398,6 @@ export default function Inventory() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="width">Width (meters) *</label>
-                  <input
-                    type="number"
-                    id="width"
-                    name="width"
-                    defaultValue={editingItem.width}
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
 
                 <div className="form-group">
                   <label htmlFor="purchasePrice">Purchase Price (per meter)</label>
@@ -560,32 +533,7 @@ export default function Inventory() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="modal-width">Width (meters) *</label>
-                  <input
-                    type="number"
-                    id="modal-width"
-                    name="width"
-                    value={formData.width}
-                    onChange={handleChange}
-                    placeholder="Enter width in meters"
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="modal-quantity">Total Quantity (square meters)</label>
-                  <input
-                    type="text"
-                    id="modal-quantity"
-                    name="quantity"
-                    value={formData.quantity ? `${formData.quantity} sq.m` : ''}
-                    placeholder="Calculated automatically"
-                    readOnly
-                  />
-                </div>
 
                 <div className="form-group">
                   <label htmlFor="modal-purchasePrice">Purchase Price (per meter)</label>
@@ -629,8 +577,6 @@ export default function Inventory() {
                       fabricType: '',
                       color: '',
                       length: '',
-                      width: '',
-                      quantity: '',
                       purchasePrice: '',
                       notes: ''
                     })

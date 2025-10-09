@@ -15,13 +15,12 @@ export async function setupMongoIndexes() {
     
     // Fabrics collection indexes
     await db.collection('fabrics').createIndexes([
-      { key: { productId: 1 }, unique: true },
+      { key: { fabricId: 1 }, unique: true },
       { key: { fabricType: 1, color: 1 } },
       { key: { status: 1 } },
       { key: { quantity: 1 } },
-      { key: { supplier: 1 } },
       { key: { createdAt: -1 } },
-      { key: { 'location': 'text', 'fabricType': 'text', 'color': 'text' } } // Text search index
+      { key: { 'fabricType': 'text', 'color': 'text' } } // Text search index
     ])
     
     // Products collection indexes

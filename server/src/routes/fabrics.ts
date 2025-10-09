@@ -34,26 +34,24 @@ router.post('/', async (req, res) => {
       fabricType,
       color,
       length,
-      width,
       quantity,
       purchasePrice,
       notes
     } = req.body
 
     // Validate required fields
-    if (!fabricType || !color || !length || !width || !quantity) {
+    if (!fabricType || !color || !length) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
-    // Use provided quantity or calculate from dimensions
-    const finalQuantity = quantity ? parseFloat(quantity) : parseFloat(length) * parseFloat(width)
+    // Calculate quantity from length (assuming 1 meter width for square meters)
+    const finalQuantity = parseFloat(length)
 
     const fabric = new Fabric({
       fabricId: fabricId || undefined,
       fabricType,
       color,
       length: parseFloat(length),
-      width: parseFloat(width),
       quantity: finalQuantity,
       purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
       notes
@@ -108,7 +106,6 @@ router.put('/:id', async (req, res) => {
       fabricType,
       color,
       length,
-      width,
       quantity,
       purchasePrice,
       notes
@@ -118,13 +115,12 @@ router.put('/:id', async (req, res) => {
     fabric.fabricType = fabricType || fabric.fabricType
     fabric.color = color || fabric.color
     fabric.length = length ? parseFloat(length) : fabric.length
-    fabric.width = width ? parseFloat(width) : fabric.width
     fabric.quantity = quantity !== undefined ? quantity : fabric.quantity
     fabric.purchasePrice = purchasePrice ? parseFloat(purchasePrice) : fabric.purchasePrice
     fabric.notes = notes || fabric.notes
 
-    // Recalculate quantity automatically (length × width)
-    fabric.quantity = fabric.length * fabric.width
+    // Recalculate quantity automatically (length in square meters)
+    fabric.quantity = fabric.length
 
     // Update status based on quantity
     if (fabric.quantity === 0) {
