@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import { Fabric } from '../models/Fabric';
 import { Employee } from '../models/Employee';
 import Attendance from '../models/Attendance';
-import { Tailor } from '../models/Tailor';
 import { ManufacturingOrder } from '../models/ManufacturingOrder';
 import { CuttingRecord } from '../models/CuttingRecord';
 const router = express.Router();
@@ -41,14 +40,7 @@ router.get('/stats', async (req: Request, res: Response) => {
       date: { $gte: today, $lt: tomorrow },
       status: 'present'
     });
-    
-    // Tailor Statistics
-    const totalTailors = await Tailor.countDocuments();
-    const activeTailors = await Tailor.countDocuments({ status: 'active' });
-    const totalTailorOrders = await Tailor.aggregate([
-      { $group: { _id: null, total: { $sum: '$totalOrders' } } }
-    ]);
-    
+
     // ManufacturingOrder Statistics
     const totalManufacturingOrder = await ManufacturingOrder.countDocuments();
     const completedManufacturingOrder = await ManufacturingOrder.countDocuments({ status: 'completed' });
@@ -88,10 +80,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         todayAttendance,
         totalFabrics,
         activeFabrics,
-        totalFabricQuantity: totalFabricQuantity[0]?.total || 0,
-        totalTailors,
-        activeTailors,
-        totalOrders: totalTailorOrders[0]?.total || 0
+        totalFabricQuantity: totalFabricQuantity[0]?.total || 0
       },
       manufacturing: {
         total: totalManufacturingOrder,

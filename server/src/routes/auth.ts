@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
-import { User } from '../models/User'
 import { Employee } from '../models/Employee'
 import { validateLogin, validateRegistration } from '../middleware/validator'
 import { authRateLimiter } from '../middleware/rateLimiter'
@@ -88,56 +87,17 @@ router.post('/login', authRateLimiter, validateLogin, async (req, res) => {
       }
     }
 
-    // Find user by username
-    const user = await User.findOne({ username: username.toLowerCase() })
-
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' })
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password)
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' })
-    }
-
-    // Update last login
-    user.lastLogin = new Date()
-    await user.save()
-
-    // Generate token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-        iat: Math.floor(Date.now() / 1000)
-      },
-      jwtSecret,
-      {
-        expiresIn: '7d',
-        algorithm: 'HS256'
-      }
-    )
-
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    })
+    // If we reach here, login failed
+    return res.status(401).json({ message: 'Invalid username or password' })
   } catch (error: any) {
     res.status(500).json({ message: 'Server error' })
   }
 })
 
-// Register (with validation)
+// Register (with validation) - Employee registration only
 router.post('/register', validateRegistration, async (req, res) => {
   try {
-    const { name, username, email, password, role = 'employee' } = req.body
+    const { name, username, email, password } = req.body
     // Note: input is already validated and sanitized by middleware
 
     const jwtSecret = process.env.JWT_SECRET
@@ -145,32 +105,32 @@ router.post('/register', validateRegistration, async (req, res) => {
       return res.status(500).json({ message: 'Server configuration error' })
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({
-      $or: [{ username }, { email }]
+    // Check if employee exists
+    const existingEmployee = await Employee.findOne({
+      $or: [{ username: username.toLowerCase() }, { email }]
     })
 
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' })
+    if (existingEmployee) {
+      return res.status(400).json({ message: 'Employee already exists' })
     }
 
-    // Create new user
-    const user = new User({
+    // Create new employee
+    const employee = new Employee({
       name,
-      username,
+      username: username.toLowerCase(),
       email,
-      password,
-      role: role === 'admin' ? 'employee' : role // Prevent admin creation via registration
+      password, // Will be hashed by pre-save hook
+      status: 'active'
     })
 
-    await user.save()
+    await employee.save()
 
     // Generate token
     const token = jwt.sign(
       {
-        id: user._id,
-        username: user.username,
-        role: user.role,
+        id: employee._id,
+        username: employee.username,
+        role: 'employee',
         iat: Math.floor(Date.now() / 1000)
       },
       jwtSecret,
@@ -183,10 +143,10 @@ router.post('/register', validateRegistration, async (req, res) => {
     res.status(201).json({
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+        id: employee._id,
+        name: employee.name,
+        email: employee.email,
+        role: 'employee'
       }
     })
   } catch (error: any) {

@@ -1,6 +1,5 @@
 import { Router } from 'express'
 import { ManufacturingOrder } from '../models/ManufacturingOrder'
-import { ManufacturingInventory } from '../models/ManufacturingInventory'
 import { CuttingRecord } from '../models/CuttingRecord'
 
 const router = Router()

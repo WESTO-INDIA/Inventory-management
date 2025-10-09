@@ -53,10 +53,12 @@ export default function StockRoom() {
     try {
       // Fetch manufacturing orders for garment stock
       const garmentResponse = await fetch(`${API_URL}/api/manufacturing-orders`)
+      const garmentList: GarmentStock[] = []
+
       if (garmentResponse.ok) {
         const garmentData = await garmentResponse.json()
         // Convert manufacturing orders to garment stock format
-        const garmentList = Array.isArray(garmentData) ? garmentData
+        const manufacturingList = Array.isArray(garmentData) ? garmentData
           .filter((order: any) => order.status === 'Completed')
           .map((order: any) => ({
             _id: order._id,
@@ -68,10 +70,33 @@ export default function StockRoom() {
             tailorName: order.tailorName,
             generatedDate: order.createdAt
           })) : []
-        setGarmentStocks(garmentList)
-      } else {
-        setGarmentStocks([])
+        garmentList.push(...manufacturingList)
       }
+
+      // Also fetch manual entries from QR Products
+      const qrProductsResponse = await fetch(`${API_URL}/api/qr-products`)
+      if (qrProductsResponse.ok) {
+        const qrProductsData = await qrProductsResponse.json()
+        // Add manual entries (those with cuttingId = 'MANUAL' or manufacturingId starting with 'MAN')
+        const manualEntries = Array.isArray(qrProductsData) ? qrProductsData
+          .filter((product: any) =>
+            product.cuttingId === 'MANUAL' ||
+            (product.manufacturingId && product.manufacturingId.startsWith('MAN'))
+          )
+          .map((product: any) => ({
+            _id: product._id,
+            productId: product.productId || product.manufacturingId,
+            productName: product.productName,
+            color: product.color || 'N/A',
+            size: product.size || 'N/A',
+            quantity: product.quantity || 0,
+            tailorName: product.tailorName || 'Manual Entry',
+            generatedDate: product.createdAt || product.generatedDate
+          })) : []
+        garmentList.push(...manualEntries)
+      }
+
+      setGarmentStocks(garmentList)
 
       // Fetch transactions
       const transactionResponse = await fetch(`${API_URL}/api/transactions`)
@@ -235,6 +260,268 @@ export default function StockRoom() {
         </div>
       </div>
 
+      {/* Bar Chart - Product Inventory */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-bold text-black mb-6 flex items-center">
+          <span className="text-2xl mr-3">📊</span>
+          Inventory Overview by Product
+        </h2>
+        <div className="overflow-x-auto">
+          {(() => {
+            // Create map from manufacturing orders (base data)
+            const garmentStockMap = new Map()
+
+            // First, add all completed manufacturing orders with their base quantity
+            Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
+              garmentStockMap.set(g.productId, {
+                itemId: g.productId,
+                itemName: g.productName,
+                color: g.color || 'N/A',
+                size: g.size || 'N/A',
+                quantity: g.quantity || 0,
+                baseQuantity: g.quantity || 0,
+                tailorName: g.tailorName || 'N/A',
+                lastUpdate: g.generatedDate
+              })
+            })
+
+            // Then adjust quantities based on transactions (stock in/out changes)
+            Array.isArray(transactions) && transactions.forEach((t: any) => {
+              if (t.itemType === 'MANUFACTURING' || t.itemType === 'QR_GENERATED') {
+                if (!garmentStockMap.has(t.itemId)) {
+                  garmentStockMap.set(t.itemId, {
+                    itemId: t.itemId,
+                    itemName: t.itemName,
+                    color: t.color || 'N/A',
+                    size: t.size || 'N/A',
+                    quantity: 0,
+                    baseQuantity: 0,
+                    tailorName: 'N/A',
+                    lastUpdate: t.timestamp
+                  })
+                }
+
+                const item = garmentStockMap.get(t.itemId)
+                if (t.action === 'STOCK_IN') {
+                  item.quantity += t.quantity
+                } else if (t.action === 'STOCK_OUT') {
+                  item.quantity -= t.quantity
+                }
+                item.lastUpdate = t.timestamp
+              }
+            })
+
+            const chartData = Array.from(garmentStockMap.values())
+
+            // Group by product name, then by color
+            const groupedByProduct = new Map()
+            chartData.forEach(item => {
+              const productName = item.itemName
+              if (!groupedByProduct.has(productName)) {
+                groupedByProduct.set(productName, new Map())
+              }
+              const colorMap = groupedByProduct.get(productName)
+              const color = item.color
+              if (!colorMap.has(color)) {
+                colorMap.set(color, [])
+              }
+              colorMap.get(color).push(item)
+            })
+
+            // Sort sizes within each color, and colors alphabetically
+            groupedByProduct.forEach((colorMap, productName) => {
+              const sortedColors = new Map([...colorMap.entries()].sort((a, b) => a[0].localeCompare(b[0])))
+              sortedColors.forEach((items, color) => {
+                items.sort((a, b) => {
+                  const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'Free Size']
+                  const aIndex = sizeOrder.indexOf(a.size)
+                  const bIndex = sizeOrder.indexOf(b.size)
+                  return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+                })
+              })
+              groupedByProduct.set(productName, sortedColors)
+            })
+
+            // Convert to array and sort by product name
+            const groupedArray = Array.from(groupedByProduct.entries()).sort((a, b) =>
+              a[0].localeCompare(b[0])
+            )
+
+            const maxQuantity = chartData.length > 0
+              ? Math.max(...chartData.map(item => item.quantity), 1)
+              : 1
+
+            // Color palette for different SIZES
+            const sizeColorMap: { [key: string]: { from: string; to: string } } = {
+              'XXS': { from: '#ef4444', to: '#dc2626' },   // Red
+              'XS': { from: '#f97316', to: '#ea580c' },    // Orange
+              'S': { from: '#f59e0b', to: '#d97706' },     // Amber
+              'M': { from: '#10b981', to: '#059669' },     // Green
+              'L': { from: '#3b82f6', to: '#2563eb' },     // Blue
+              'XL': { from: '#8b5cf6', to: '#7c3aed' },    // Purple
+              'XXL': { from: '#ec4899', to: '#db2777' },   // Pink
+              'XXXL': { from: '#14b8a6', to: '#0d9488' },  // Teal
+              'Free Size': { from: '#6b7280', to: '#4b5563' } // Gray
+            }
+
+            return groupedArray.length > 0 ? (
+              <div style={{ width: '100%', overflowX: 'auto', paddingBottom: '20px' }}>
+                {/* Chart Container */}
+                <div style={{ position: 'relative', paddingLeft: '60px', minHeight: '480px', minWidth: 'max-content' }}>
+                  {/* Y-axis labels and grid lines */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '0',
+                    top: '0',
+                    width: '100%',
+                    height: '350px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    pointerEvents: 'none'
+                  }}>
+                    {[maxQuantity, Math.floor(maxQuantity * 0.75), Math.floor(maxQuantity * 0.5), Math.floor(maxQuantity * 0.25), 0].map((value, index) => (
+                      <div key={index} style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <span className="text-sm font-semibold text-gray-800" style={{ width: '50px', textAlign: 'right', paddingRight: '10px' }}>
+                          {value}
+                        </span>
+                        <div style={{
+                          flexGrow: 1,
+                          height: index === 4 ? '3px' : '1px',
+                          backgroundColor: index === 4 ? '#1f2937' : '#e5e7eb',
+                          opacity: index === 4 ? 1 : 0.5
+                        }}></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bars Container */}
+                  <div style={{
+                    position: 'relative',
+                    marginLeft: '60px',
+                    height: '350px',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    gap: '40px',
+                    paddingBottom: '3px'
+                  }}>
+                    {groupedArray.map(([productName, colorMap]) => (
+                      <div key={productName} style={{ display: 'flex', alignItems: 'flex-end', gap: '24px' }}>
+                        {Array.from(colorMap.entries()).map(([color, items]) => (
+                          <div key={`${productName}-${color}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            {/* Bars for each size */}
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px' }}>
+                              {items.map((item) => {
+                                const barHeightPx = maxQuantity > 0 ? (item.quantity / maxQuantity) * 347 : 0
+                                const sizeColor = sizeColorMap[item.size] || { from: '#6b7280', to: '#4b5563' }
+                                return (
+                                  <div key={item.itemId} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    {/* Bar */}
+                                    <div
+                                      className="rounded-t-md transition-all duration-300 hover:brightness-110 relative group"
+                                      style={{
+                                        width: '24px',
+                                        height: `${barHeightPx}px`,
+                                        background: `linear-gradient(to top, ${sizeColor.from}, ${sizeColor.to})`,
+                                        boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      {/* Quantity label above bar */}
+                                      {item.quantity > 0 && (
+                                        <span
+                                          className="absolute left-1/2 transform -translate-x-1/2 font-bold text-gray-900"
+                                          style={{
+                                            bottom: '100%',
+                                            marginBottom: '5px',
+                                            fontSize: '11px',
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                        >
+                                          {item.quantity}
+                                        </span>
+                                      )}
+
+                                      {/* Tooltip on hover */}
+                                      <div className="absolute left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg py-3 px-4 whitespace-nowrap shadow-2xl" style={{ bottom: 'calc(100% + 20px)', zIndex: 100 }}>
+                                        <div className="font-bold text-sm mb-2 border-b border-gray-700 pb-1">{item.itemName}</div>
+                                        <div className="space-y-1">
+                                          <div><span className="text-gray-400">Color:</span> <span className="font-semibold">{item.color}</span></div>
+                                          <div><span className="text-gray-400">Size:</span> <span className="font-semibold">{item.size}</span></div>
+                                          <div className="pt-1 border-t border-gray-700 mt-2"><span className="text-gray-400">Stock:</span> <span className="text-green-400 font-bold">{item.quantity} pcs</span></div>
+                                        </div>
+                                        {/* Arrow */}
+                                        <div style={{
+                                          position: 'absolute',
+                                          bottom: '-6px',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          width: 0,
+                                          height: 0,
+                                          borderLeft: '6px solid transparent',
+                                          borderRight: '6px solid transparent',
+                                          borderTop: '6px solid #111827'
+                                        }}></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* X-axis Labels */}
+                  <div style={{
+                    marginLeft: '60px',
+                    marginTop: '15px',
+                    display: 'flex',
+                    gap: '40px'
+                  }}>
+                    {groupedArray.map(([productName, colorMap]) => (
+                      <div key={productName} style={{ display: 'flex', gap: '24px' }}>
+                        {Array.from(colorMap.entries()).map(([color, items]) => (
+                          <div key={`${productName}-${color}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: `${items.length * 27}px` }}>
+                            {/* Product Name */}
+                            <div className="text-sm font-bold text-gray-900 mb-1">{productName}</div>
+                            {/* Color Name */}
+                            <div className="text-xs font-semibold text-blue-600 mb-2 bg-blue-50 px-3 py-1 rounded-full">{color}</div>
+                            {/* Size labels */}
+                            <div style={{ display: 'flex', gap: '3px' }}>
+                              {items.map((item) => {
+                                const sizeColor = sizeColorMap[item.size] || { from: '#6b7280', to: '#4b5563' }
+                                return (
+                                  <div
+                                    key={item.itemId}
+                                    className="text-xs font-bold text-white text-center rounded px-1 py-0.5"
+                                    style={{
+                                      width: '24px',
+                                      backgroundColor: sizeColor.from,
+                                      fontSize: '10px'
+                                    }}
+                                  >
+                                    {item.size}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No inventory data available</p>
+            )
+          })()}
+        </div>
+      </div>
+
       {/* Stock Room Details - Garment Stock Only */}
       <div className="grid grid-cols-1 gap-6 mb-8">
         {/* Garment Stock */}
@@ -298,6 +585,13 @@ export default function StockRoom() {
 
               const garmentItems = Array.from(garmentStockMap.values())
 
+              // Sort by manufacturing ID (itemId)
+              garmentItems.sort((a, b) => {
+                const aId = a.itemId || ''
+                const bId = b.itemId || ''
+                return aId.localeCompare(bId)
+              })
+
               return garmentItems.length > 0 ? (
                 garmentItems.map((garment) => (
                   <div key={garment.itemId} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
@@ -323,46 +617,6 @@ export default function StockRoom() {
               )
             })()}
           </div>
-        </div>
-      </div>
-
-      {/* Stock Transaction History */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-bold text-black mb-4 flex items-center">
-          <span className="text-2xl mr-3">📋</span>
-          Recent Stock Transactions
-        </h2>
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-          {Array.isArray(transactions) && transactions
-            .filter(t => t.itemType === 'MANUFACTURING' || t.itemType === 'QR_GENERATED')
-            .slice(0, 20)
-            .map((transaction) => (
-              <div key={transaction._id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="font-semibold text-black">{transaction.itemName}</p>
-                    <p className="text-sm text-gray-600">ID: {transaction.itemId}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatDateTime(transaction.timestamp)} • By: {transaction.performedBy}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                      transaction.action === 'STOCK_IN' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {transaction.action === 'STOCK_IN' ? '+ Stock In' : '- Stock Out'}
-                    </span>
-                    <p className="text-lg font-bold text-black mt-1">{transaction.quantity} pcs</p>
-                    <p className="text-xs text-gray-500">
-                      {transaction.previousStock} → {transaction.newStock}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          {(!Array.isArray(transactions) || transactions.filter(t => t.itemType === 'MANUFACTURING' || t.itemType === 'QR_GENERATED').length === 0) && (
-            <p className="text-center text-gray-500 py-8">No transactions yet</p>
-          )}
         </div>
       </div>
     </div>
