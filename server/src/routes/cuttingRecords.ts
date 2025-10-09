@@ -71,7 +71,6 @@ router.post('/', async (req, res) => {
       cuttingRecord
     })
   } catch (error: any) {
-    console.error('Error creating cutting record:', error)
     if (error.code === 11000) {
       res.status(400).json({ message: 'Cutting record with this ID already exists' })
     } else if (error.name === 'ValidationError') {

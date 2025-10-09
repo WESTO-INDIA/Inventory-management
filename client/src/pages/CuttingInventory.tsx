@@ -212,7 +212,6 @@ export default function CuttingInventory() {
         date: formData.cuttingDate
       }
 
-      console.log('Sending cutting record:', cuttingRecord)
 
       const cuttingResponse = await fetch(`${API_URL}/api/cutting-records`, {
         method: 'POST',
@@ -222,7 +221,6 @@ export default function CuttingInventory() {
 
       if (cuttingResponse.ok) {
         const result = await cuttingResponse.json()
-        console.log('Success response:', result)
         alert(`✅ Cutting record ${cuttingId} added successfully!\nNote: Please update fabric quantity manually if needed.`)
 
         setFormData({

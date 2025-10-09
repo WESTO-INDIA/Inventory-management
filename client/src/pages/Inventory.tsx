@@ -207,8 +207,6 @@ export default function Inventory() {
         fabricId: fabricId
       }
 
-      console.log('Sending fabric data:', fabricData)
-
       const response = await fetch(`${API_URL}/api/fabrics`, {
         method: 'POST',
         headers: {

@@ -70,7 +70,6 @@ router.post('/', async (req, res) => {
       fabric
     })
   } catch (error: any) {
-    console.error('Error creating fabric:', error)
     
     // Handle duplicate key errors specifically
     if (error.code === 11000) {

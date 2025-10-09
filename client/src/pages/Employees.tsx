@@ -50,14 +50,10 @@ export default function Employees() {
 
   const fetchEmployees = useCallback(async () => {
     if (!token) {
-      console.log('No token available, skipping fetch')
       return
     }
 
     setIsLoading(true)
-    console.log('Fetching employees...')
-    console.log('Token:', token ? 'Present' : 'Missing')
-    console.log('API URL:', API_URL)
 
     try {
       const response = await fetch(`${API_URL}/api/employees`, {
@@ -66,12 +62,9 @@ export default function Employees() {
         }
       })
 
-      console.log('Response status:', response.status)
 
       if (response.ok) {
         const data = await response.json()
-        console.log('Employees fetched:', data.length, 'employees')
-        console.log('Employee data:', data)
         setEmployees(data)
       } else {
         console.error('Failed to fetch employees:', response.status, response.statusText)

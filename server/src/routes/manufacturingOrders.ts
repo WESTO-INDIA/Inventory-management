@@ -98,7 +98,6 @@ router.post('/', async (req, res) => {
       manufacturingOrder
     })
   } catch (error: any) {
-    console.error('Error creating manufacturing order:', error)
     res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
@@ -106,17 +105,10 @@ router.post('/', async (req, res) => {
 // PUT update manufacturing order
 router.put('/:id', async (req, res) => {
   try {
-    console.log('PUT /manufacturing-orders/:id called')
-    console.log('ID:', req.params.id)
-    console.log('Request body:', req.body)
-
     const manufacturingOrder = await ManufacturingOrder.findById(req.params.id)
     if (!manufacturingOrder) {
-      console.log('Manufacturing order not found')
       return res.status(404).json({ message: 'Manufacturing order not found' })
     }
-
-    console.log('Current status:', manufacturingOrder.status)
 
     const {
       fabricType,
@@ -140,19 +132,16 @@ router.put('/:id', async (req, res) => {
     if (pricePerPiece !== undefined) manufacturingOrder.pricePerPiece = parseFloat(pricePerPiece)
     if (totalAmount !== undefined) manufacturingOrder.totalAmount = parseFloat(totalAmount)
     if (status) {
-      console.log('Updating status to:', status)
       manufacturingOrder.status = status
     }
 
     await manufacturingOrder.save()
-    console.log('New status after save:', manufacturingOrder.status)
 
     res.json({
       message: 'Manufacturing order updated successfully',
       manufacturingOrder
     })
   } catch (error: any) {
-    console.error('Error updating manufacturing order:', error)
     res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
@@ -174,7 +163,6 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Manufacturing order and associated QR codes deleted successfully' })
   } catch (error: any) {
-    console.error('Error deleting manufacturing order:', error)
     res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })

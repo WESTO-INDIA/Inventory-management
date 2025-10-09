@@ -1,17 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { API_URL } from '@/config/api'
 import '../styles/common.css'
-
-interface FabricStock {
-  _id: string
-  fabricId: string
-  fabricType: string
-  color: string
-  quantity: number
-  status: string
-  dateReceived: string
-}
 
 interface GarmentStock {
   _id: string
@@ -40,9 +29,7 @@ interface Transaction {
 }
 
 export default function StockRoom() {
-  const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [fabricStocks, setFabricStocks] = useState<FabricStock[]>([])
   const [garmentStocks, setGarmentStocks] = useState<GarmentStock[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -96,7 +83,6 @@ export default function StockRoom() {
         setTransactions([])
       }
     } catch (error) {
-      console.error('Error fetching stock data:', error)
       setGarmentStocks([])
       setTransactions([])
     } finally {

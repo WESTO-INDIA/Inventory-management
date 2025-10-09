@@ -8,14 +8,11 @@ const router = Router();
 // Get all employees (only active employees, sorted by employeeId)
 router.get('/', authMiddleware.authenticate, async (req: Request, res: Response) => {
   try {
-    console.log('GET /api/employees - Fetching employees...')
     const employees = await Employee.find({ status: 'active' })
       .select('-password')
       .sort({ employeeId: 1 }); // Sort by employeeId in ascending order
-    console.log('Found employees:', employees.length)
     res.json(employees);
   } catch (error: any) {
-    console.error('Error fetching employees:', error)
     res.status(500).json({ message: error.message });
   }
 });
