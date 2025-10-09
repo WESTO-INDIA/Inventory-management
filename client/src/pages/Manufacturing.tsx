@@ -152,8 +152,7 @@ export default function Manufacturing() {
               ...formData,
               fabricType: cuttingRecord.fabricType,
               fabricColor: cuttingRecord.fabricColor,
-              productName: cuttingRecord.productName,
-              pricePerPiece: (cuttingRecord.tailorItemPerPiece || 0).toString()
+              productName: cuttingRecord.productName
             })
           }
         } else {

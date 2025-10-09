@@ -307,7 +307,16 @@ export default function QRInventory() {
             }
           }
         } else {
-          alert('❌ Cannot delete manufacturing-based QR products. These are auto-generated from manufacturing orders.')
+          // For auto-generated products, delete from manufacturing orders
+          const response = await fetch(`${API_URL}/api/manufacturing-orders/${product._id}`, {
+            method: 'DELETE'
+          })
+          if (response.ok) {
+            alert('✅ Auto-generated product deleted successfully!')
+            await fetchQRProducts()
+          } else {
+            alert('❌ Error deleting auto-generated product')
+          }
         }
       } catch (error) {
         alert('❌ Error deleting product')
@@ -329,7 +338,7 @@ export default function QRInventory() {
       const updatedData = {
         productName: formData.get('productName') as string,
         fabricType: formData.get('fabricType') as string,
-        color: formData.get('color') as string,
+        fabricColor: formData.get('color') as string,
         size: formData.get('size') as string,
         quantity: parseInt(formData.get('quantity') as string)
       }
@@ -348,8 +357,21 @@ export default function QRInventory() {
           fetchQRProducts()
         }
       } else {
-        alert('❌ Cannot edit manufacturing-based QR products')
-        setShowEditModal(false)
+        // For auto-generated products, update the manufacturing order
+        const response = await fetch(`${API_URL}/api/manufacturing-orders/${editingProduct._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedData)
+        })
+
+        if (response.ok) {
+          alert('✅ Auto-generated product updated successfully!')
+          setShowEditModal(false)
+          setEditingProduct(null)
+          fetchQRProducts()
+        } else {
+          alert('❌ Error updating auto-generated product')
+        }
       }
     } catch (error) {
       alert('❌ Error updating product')
@@ -515,15 +537,8 @@ export default function QRInventory() {
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div className="action-buttons">
-                        {(product.isManual || product.cuttingId === 'MANUAL') && (
-                          <>
-                            <button className="action-btn edit" onClick={() => handleEdit(product)}>✏️</button>
-                            <button className="action-btn delete" onClick={() => handleDelete(product)}>🗑️</button>
-                          </>
-                        )}
-                        {!(product.isManual || product.cuttingId === 'MANUAL') && (
-                          <span style={{ color: '#9ca3af', fontSize: '12px' }}>Auto-generated</span>
-                        )}
+                        <button className="action-btn edit" onClick={() => handleEdit(product)}>✏️</button>
+                        <button className="action-btn delete" onClick={() => handleDelete(product)}>🗑️</button>
                       </div>
                     </td>
                   </tr>
