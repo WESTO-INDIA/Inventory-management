@@ -14,7 +14,7 @@ interface ManufacturingRecord {
   pricePerPiece: number
   totalAmount: number
   tailorName: string
-  status: 'Pending' | 'Completed'
+  status: 'Pending' | 'Completed' | 'deleted'
   createdAt: string
 }
 
@@ -71,21 +71,23 @@ export default function ManufacturingInventory() {
   }
 
   const handleDelete = async (record: ManufacturingRecord) => {
-    if (window.confirm(`Are you sure you want to delete manufacturing record ${record.manufacturingId}?`)) {
-      try {
-        const deleteResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
-          method: 'DELETE'
-        })
-        
-        if (deleteResponse.ok) {
-          alert('✅ Manufacturing record deleted successfully!')
-          fetchManufacturingRecords()
-        } else {
-          alert('❌ Error deleting manufacturing record. Please try again.')
-        }
-      } catch (error) {
-        alert('❌ Error deleting manufacturing record. Please try again.')
+    try {
+      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'deleted' })
+      })
+
+      if (updateResponse.ok) {
+        alert('✅ Manufacturing record marked as deleted!')
+        fetchManufacturingRecords()
+      } else {
+        alert('❌ Error marking record as deleted. Please try again.')
       }
+    } catch (error) {
+      alert('❌ Error marking record as deleted. Please try again.')
     }
   }
 
@@ -247,28 +249,34 @@ export default function ManufacturingInventory() {
                     </td>
                     <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>
                     <td style={{ textAlign: 'center' }}>
-                      <select
-                        value={record.status}
-                        onChange={(e) => handleStatusChange(record, e.target.value as 'Pending' | 'Completed')}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          border: '1px solid #d1d5db',
-                          backgroundColor: record.status === 'Completed' ? '#dcfce7' : '#fef3c7',
-                          color: record.status === 'Completed' ? '#059669' : '#d97706',
-                          fontWeight: '500',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Completed">Completed</option>
-                      </select>
+                      {record.status === 'deleted' ? (
+                        <span style={{ color: 'red', fontWeight: '500' }}>Deleted</span>
+                      ) : (
+                        <select
+                          value={record.status}
+                          onChange={(e) => handleStatusChange(record, e.target.value as 'Pending' | 'Completed')}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: record.status === 'Completed' ? '#dcfce7' : '#fef3c7',
+                            color: record.status === 'Completed' ? '#059669' : '#d97706',
+                            fontWeight: '500',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div className="action-buttons">
-                        <button className="action-btn edit" onClick={() => handleEdit(record)}>✏️</button>
-                        <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
-                      </div>
+                      {record.status !== 'deleted' && (
+                        <div className="action-buttons">
+                          <button className="action-btn edit" onClick={() => handleEdit(record)}>✏️</button>
+                          <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
