@@ -151,6 +151,11 @@ export default function ManufacturingInventory() {
   }
 
   const filteredRecords = manufacturingRecords.filter(record => {
+    // Filter out deleted records
+    if (record.status === 'deleted') {
+      return false
+    }
+
     const matchesSearch = (record.manufacturingId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (record.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (record.tailorName || '').toLowerCase().includes(searchTerm.toLowerCase())

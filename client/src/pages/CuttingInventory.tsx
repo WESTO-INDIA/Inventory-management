@@ -513,13 +513,14 @@ export default function CuttingInventory() {
                       style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
                     >
                       <option value="">Select Size</option>
-                      <option value="XXS">XXS</option>
-                      <option value="XS">XS</option>
-                      <option value="S">S</option>
-                      <option value="M">M</option>
-                      <option value="L">L</option>
-                      <option value="XL">XL</option>
-                      <option value="XXL">XXL</option>
+                      {['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL'].map(size => {
+                        const isUsed = sizeBreakdown.some(s => s.size === size)
+                        return (
+                          <option key={size} value={size} disabled={isUsed}>
+                            {size} {isUsed ? '(Not Available)' : ''}
+                          </option>
+                        )
+                      })}
                     </select>
                   </div>
 

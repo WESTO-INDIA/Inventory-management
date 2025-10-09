@@ -167,15 +167,16 @@ export default function QRInventory() {
           }
 
           try {
+            // Use high error correction to allow for logo overlay
             const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
-              errorCorrectionLevel: 'M',
+              errorCorrectionLevel: 'H', // High error correction allows 30% of QR code to be covered
               type: 'image/png',
               margin: 1,
               color: {
                 dark: '#000000',
                 light: '#FFFFFF'
               },
-              width: 256
+              width: 400
             })
             setQrCodes(prev => new Map(prev).set(product.manufacturingId, qrCodeDataUrl))
           } catch (error) {
@@ -370,9 +371,35 @@ export default function QRInventory() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1>Garment Inventory</h1>
-        <p>Manage garment inventory and QR codes</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1>Garment Inventory</h1>
+          <p>Manage garment inventory and QR codes</p>
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: 'white', padding: '12px 20px', borderRadius: '8px', border: '2px solid #000' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '14px',
+              height: '14px',
+              backgroundColor: '#10b981',
+              borderRadius: '3px',
+              border: '1px solid #059669'
+            }}></div>
+            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Manual Entry</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '14px',
+              height: '14px',
+              backgroundColor: '#000',
+              borderRadius: '3px',
+              border: '1px solid #000'
+            }}></div>
+            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Auto Generated</span>
+          </div>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -462,52 +489,117 @@ export default function QRInventory() {
                                   <head>
                                     <title>QR Label - ${product.productName}</title>
                                     <style>
-                                      @page { size: 2in 2in; margin: 0; }
+                                      @page { size: 3in 2.5in; margin: 0; }
                                       body {
                                         margin: 0;
                                         display: flex;
                                         justify-content: center;
                                         align-items: center;
                                         min-height: 100vh;
+                                        background: #f5f5f5;
                                       }
                                       .label {
-                                        width: 2in;
-                                        height: 2in;
-                                        border: 1px solid #000;
+                                        width: 3in;
+                                        height: 2.5in;
+                                        background: white;
                                         display: flex;
                                         flex-direction: column;
                                         align-items: center;
                                         justify-content: center;
-                                        padding: 0.1in;
+                                        padding: 0.2in;
+                                        box-sizing: border-box;
+                                        gap: 0.12in;
                                       }
-                                      .qr { width: 1.2in; height: 1.2in; }
-                                      .product-name {
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        margin-top: 8px;
-                                        text-align: center;
+                                      .qr-container {
+                                        position: relative;
+                                        width: 1.5in;
+                                        height: 1.5in;
                                       }
-                                      .size {
+                                      .qr {
+                                        width: 100%;
+                                        height: 100%;
+                                        display: block;
+                                      }
+                                      .logo {
+                                        position: absolute;
+                                        top: 50%;
+                                        left: 50%;
+                                        transform: translate(-50%, -50%);
+                                        width: 0.45in;
+                                        height: 0.45in;
                                         background: #000;
+                                        border: 3px solid #fff;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-weight: 900;
+                                        font-size: 22px;
+                                        font-family: 'Arial Black', Arial, sans-serif;
+                                        color: #fff;
+                                        box-shadow: 0 0 0 2px #000;
+                                        letter-spacing: 1px;
+                                      }
+                                      .info-section {
+                                        width: 100%;
+                                        display: flex;
+                                        flex-direction: column;
+                                        gap: 0.08in;
+                                      }
+                                      .product-name {
+                                        font-size: 16px;
+                                        font-weight: 900;
+                                        text-align: center;
+                                        margin: 0;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        color: #000;
+                                      }
+                                      .details {
+                                        display: flex;
+                                        justify-content: center;
+                                        align-items: center;
+                                        gap: 0.12in;
+                                        flex-wrap: wrap;
+                                      }
+                                      .detail-item {
+                                        background: linear-gradient(135deg, #000 0%, #333 100%);
                                         color: white;
-                                        padding: 4px 12px;
-                                        border-radius: 4px;
-                                        margin-top: 6px;
-                                        font-weight: bold;
+                                        padding: 0.06in 0.12in;
+                                        border-radius: 0.08in;
+                                        font-weight: 700;
+                                        font-size: 11px;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.5px;
+                                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                                        white-space: nowrap;
                                       }
                                       @media print {
-                                        body { margin: 0; }
+                                        body {
+                                          margin: 0;
+                                          background: white;
+                                        }
                                         .no-print { display: none; }
                                       }
                                     </style>
                                   </head>
                                   <body>
                                     <div class="label">
-                                      <img src="${qrCodes.get(product.manufacturingId)}" class="qr" />
-                                      <div class="product-name">${product.productName}</div>
-                                      <div class="size">SIZE: ${product.size}</div>
+                                      <div class="qr-container">
+                                        <img src="${qrCodes.get(product.manufacturingId)}" class="qr" />
+                                        <div class="logo">W</div>
+                                      </div>
+
+                                      <div class="info-section">
+                                        <div class="product-name">${product.productName}</div>
+                                        <div class="details">
+                                          <div class="detail-item">${product.fabricType || 'N/A'}</div>
+                                          <div class="detail-item">${product.color}</div>
+                                          <div class="detail-item">Size ${product.size}</div>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <button onclick="window.print()" class="no-print" style="position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Print Label</button>
+                                    <button onclick="window.print()" class="no-print" style="position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #000; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">Print Label</button>
                                   </body>
                                 </html>
                               `)

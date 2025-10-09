@@ -9,6 +9,7 @@ interface Transaction {
   itemType: 'FABRIC' | 'MANUFACTURING' | 'CUTTING' | 'QR_GENERATED' | 'UNKNOWN'
   itemId: string
   itemName: string
+  fabricType?: string
   action: 'ADD' | 'REMOVE' | 'QR_GENERATED' | 'STOCK_IN' | 'STOCK_OUT'
   quantity: number
   previousStock: number
@@ -149,6 +150,9 @@ export default function Transactions() {
         itemType: 'MANUFACTURING',
         itemId: selectedProduct.manufacturingId,
         itemName: selectedProduct.productName,
+        fabricType: selectedProduct.fabricType,
+        color: selectedProduct.color,
+        size: selectedProduct.size,
         action: stockFormData.action,
         quantity: quantityChange,
         previousStock: previousStock,
@@ -433,6 +437,7 @@ export default function Transactions() {
                 <th style={{ textAlign: 'center' }}>Date & Time</th>
                 <th style={{ textAlign: 'center' }}>Item Type</th>
                 <th style={{ textAlign: 'center' }}>Item Name</th>
+                <th style={{ textAlign: 'center' }}>Fabric Type</th>
                 <th style={{ textAlign: 'center' }}>Color</th>
                 <th style={{ textAlign: 'center' }}>Size</th>
                 <th style={{ textAlign: 'center' }}>Item ID</th>
@@ -452,6 +457,9 @@ export default function Transactions() {
                       </span>
                     </td>
                     <td style={{ fontWeight: '500', textAlign: 'center' }}>{transaction.itemName}</td>
+                    <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                      {transaction.fabricType || transaction.productInfo?.fabricType || '-'}
+                    </td>
                     <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
                       {transaction.color || transaction.productInfo?.color || '-'}
                     </td>
@@ -486,7 +494,7 @@ export default function Transactions() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="empty-state">
+                  <td colSpan={10} className="empty-state">
                     <div className="empty-state-icon">📊</div>
                     <h3>No Transactions Found</h3>
                     <p>

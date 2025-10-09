@@ -55,29 +55,67 @@ export default function QRScanner() {
 
   const fetchProductFromQRInventory = async (manufacturingId: string) => {
     try {
-      // Fetch from manufacturing orders
+      // Fetch from manufacturing orders first to get base quantity
       const response = await fetch(`${API_URL}/api/manufacturing-orders`)
+      let baseQuantity = 0
+      let manufacturingRecord = null
+
       if (response.ok) {
         const records = await response.json()
         const record = records.find((r: any) =>
-          r.manufacturingId === manufacturingId && r.itemsReceived > 0
+          r.manufacturingId === manufacturingId
         )
 
         if (record) {
-          return {
-            _id: record._id,
-            manufacturingId: record.manufacturingId,
-            productName: record.productName,
-            fabricType: record.fabricType || 'N/A',
-            color: record.fabricColor || 'N/A',
-            size: record.size || 'N/A',
-            currentStock: record.itemsReceived || 0,
-            tailorName: record.tailorName || 'N/A',
-            pricePerPiece: record.pricePerPiece || 0,
-            totalPrice: record.totalPrice || 0,
-            companyName: 'Westo',
-            companyLogo: '🏢'
+          manufacturingRecord = record
+          // Only use base quantity if status is Completed
+          if (record.status === 'Completed') {
+            baseQuantity = record.quantity || 0
           }
+        }
+      }
+
+      // Fetch transactions to calculate stock changes
+      const transactionsResponse = await fetch(`${API_URL}/api/transactions`)
+      let transactionAdjustment = 0
+
+      if (transactionsResponse.ok) {
+        const allTransactions = await transactionsResponse.json()
+        const transactions = Array.isArray(allTransactions) ? allTransactions : (allTransactions.transactions || [])
+
+        // Calculate stock changes from transactions
+        const productTransactions = transactions.filter((t: any) =>
+          t.itemId === manufacturingId
+        )
+
+        // Only count STOCK_IN/STOCK_OUT transactions (not QR_GENERATED)
+        // to match Stock Room calculation
+        productTransactions.forEach((t: any) => {
+          if (t.action === 'STOCK_IN') {
+            transactionAdjustment += t.quantity
+          } else if (t.action === 'STOCK_OUT') {
+            transactionAdjustment -= t.quantity
+          }
+        })
+      }
+
+      // Calculate total current stock: base quantity + transaction adjustments
+      const currentStock = baseQuantity + transactionAdjustment
+
+      if (manufacturingRecord) {
+        return {
+          _id: manufacturingRecord._id,
+          manufacturingId: manufacturingRecord.manufacturingId,
+          productName: manufacturingRecord.productName,
+          fabricType: manufacturingRecord.fabricType || 'N/A',
+          color: manufacturingRecord.fabricColor || 'N/A',
+          size: manufacturingRecord.size || 'N/A',
+          currentStock: currentStock,
+          tailorName: manufacturingRecord.tailorName || 'N/A',
+          pricePerPiece: manufacturingRecord.pricePerPiece || 0,
+          totalPrice: manufacturingRecord.totalPrice || 0,
+          companyName: 'Westo',
+          companyLogo: '🏢'
         }
       }
 
@@ -90,6 +128,10 @@ export default function QRScanner() {
         )
 
         if (qrProduct) {
+          // For manual products, use their quantity as base + transactions
+          const manualBaseQuantity = qrProduct.quantity || 0
+          const manualCurrentStock = manualBaseQuantity + transactionAdjustment
+
           return {
             _id: qrProduct._id,
             manufacturingId: qrProduct.manufacturingId,
@@ -97,7 +139,7 @@ export default function QRScanner() {
             fabricType: qrProduct.fabricType || 'N/A',
             color: qrProduct.color || 'N/A',
             size: qrProduct.size || 'N/A',
-            currentStock: qrProduct.quantity || 0,
+            currentStock: manualCurrentStock,
             tailorName: qrProduct.tailorName || 'N/A',
             pricePerPiece: qrProduct.pricePerPiece || 0,
             totalPrice: qrProduct.totalPrice || 0,
@@ -163,45 +205,8 @@ export default function QRScanner() {
         ? scannedProduct.currentStock + quantity
         : Math.max(0, scannedProduct.currentStock - quantity)
 
-      // Update in manufacturing orders
-      const response = await fetch(`${API_URL}/api/manufacturing-orders`)
-      if (response.ok) {
-        const records = await response.json()
-        const record = records.find((r: any) =>
-          r.manufacturingId === scannedProduct.manufacturingId
-        )
-
-        if (record) {
-          const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              itemsReceived: newQuantity
-            })
-          })
-
-          if (!updateResponse.ok) {
-            // Try updating QR products instead
-            const qrResponse = await fetch(`${API_URL}/api/qr-products`)
-            if (qrResponse.ok) {
-              const qrProducts = await qrResponse.json()
-              const qrProduct = qrProducts.find((p: any) =>
-                p.manufacturingId === scannedProduct.manufacturingId
-              )
-
-              if (qrProduct) {
-                await fetch(`${API_URL}/api/qr-products/${qrProduct._id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ quantity: newQuantity })
-                })
-              }
-            }
-          }
-        }
-      }
-
-      // Log transaction
+      // Only log transaction - don't update manufacturing orders or QR products
+      // Stock is calculated from transactions in Stock Room
       const transactionResponse = await fetch(`${API_URL}/api/transactions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,6 +215,9 @@ export default function QRScanner() {
           itemType: 'MANUFACTURING',
           itemId: scannedProduct.manufacturingId,
           itemName: scannedProduct.productName,
+          fabricType: scannedProduct.fabricType,
+          color: scannedProduct.color,
+          size: scannedProduct.size,
           action: stockAction === 'in' ? 'STOCK_IN' : 'STOCK_OUT',
           quantity: quantity,
           previousStock: scannedProduct.currentStock,
@@ -220,6 +228,7 @@ export default function QRScanner() {
       })
 
       if (!transactionResponse.ok) {
+        throw new Error('Failed to create transaction')
       }
 
       setScannedProduct({
