@@ -11,9 +11,7 @@ export interface ICuttingRecord extends Document {
   fabricColor: string
   productName: string
   piecesCount: number
-  pieceLength: number
-  pieceWidth: number
-  totalSquareMetersUsed: number
+  totalLengthUsed: number
   sizeType: string
   sizeBreakdown?: ISizeBreakdown[]
   cuttingMaster: string
@@ -51,20 +49,10 @@ const CuttingRecordSchema: Schema = new Schema({
     required: true,
     min: 1
   },
-  pieceLength: {
+  totalLengthUsed: {
     type: Number,
     required: true,
     min: 0.1
-  },
-  pieceWidth: {
-    type: Number,
-    required: true,
-    min: 0.1
-  },
-  totalSquareMetersUsed: {
-    type: Number,
-    required: true,
-    min: 0
   },
   sizeType: {
     type: String,

@@ -14,9 +14,7 @@ interface CuttingRecord {
   fabricColor: string
   productName: string
   piecesCount: number
-  pieceLength: number
-  pieceWidth: number
-  totalSquareMetersUsed: number
+  totalLengthUsed: number
   sizeType: string
   sizeBreakdown?: SizeBreakdown[]
   cuttingMaster: string
@@ -28,10 +26,8 @@ interface CuttingForm {
   fabricType: string
   fabricColor: string
   productName: string
-  pieceLength: string
-  pieceWidth: string
   piecesCount: string
-  totalSquareMetersUsed: string
+  totalLengthUsed: string
   cuttingMaster: string
   tailorItemPerPiece: string
   cuttingDate: string
@@ -51,10 +47,8 @@ export default function CuttingInventory() {
     fabricType: '',
     fabricColor: '',
     productName: '',
-    pieceLength: '',
-    pieceWidth: '',
     piecesCount: '',
-    totalSquareMetersUsed: '0',
+    totalLengthUsed: '',
     cuttingMaster: '',
     tailorItemPerPiece: '',
     cuttingDate: new Date().toISOString().split('T')[0]
@@ -63,10 +57,8 @@ export default function CuttingInventory() {
     fabricType: '',
     fabricColor: '',
     productName: '',
-    pieceLength: '',
-    pieceWidth: '',
     piecesCount: '',
-    totalSquareMetersUsed: '0',
+    totalLengthUsed: '',
     cuttingMaster: '',
     tailorItemPerPiece: '',
     cuttingDate: new Date().toISOString().split('T')[0]
@@ -142,10 +134,8 @@ export default function CuttingInventory() {
       fabricType: record.fabricType,
       fabricColor: record.fabricColor,
       productName: record.productName,
-      pieceLength: record.pieceLength.toString(),
-      pieceWidth: record.pieceWidth.toString(),
       piecesCount: record.piecesCount.toString(),
-      totalSquareMetersUsed: record.totalSquareMetersUsed.toString(),
+      totalLengthUsed: record.totalLengthUsed.toString(),
       cuttingMaster: record.cuttingMaster,
       tailorItemPerPiece: (record.tailorItemPerPiece || 0).toString(),
       cuttingDate: record.date
@@ -203,9 +193,7 @@ export default function CuttingInventory() {
         fabricColor: editFormData.fabricColor,
         productName: editFormData.productName,
         piecesCount: parseInt(editFormData.piecesCount),
-        pieceLength: parseFloat(editFormData.pieceLength),
-        pieceWidth: parseFloat(editFormData.pieceWidth),
-        totalSquareMetersUsed: parseFloat(editFormData.totalSquareMetersUsed),
+        totalLengthUsed: parseFloat(editFormData.totalLengthUsed),
         sizeType: 'Mixed',
         sizeBreakdown: editSizeBreakdown,
         cuttingMaster: editFormData.cuttingMaster,
@@ -245,20 +233,6 @@ export default function CuttingInventory() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     const newFormData = { ...formData, [name]: value }
-
-    if (name === 'pieceLength' || name === 'pieceWidth' || name === 'piecesCount') {
-      const length = name === 'pieceLength' ? parseFloat(value) : parseFloat(formData.pieceLength)
-      const width = name === 'pieceWidth' ? parseFloat(value) : parseFloat(formData.pieceWidth)
-      const pieces = name === 'piecesCount' ? parseFloat(value) : parseFloat(formData.piecesCount)
-
-      if (!isNaN(length) && !isNaN(width) && !isNaN(pieces) && length > 0 && width > 0 && pieces > 0) {
-        const squareMetersPerPiece = length * width
-        const totalSquareMeters = squareMetersPerPiece * pieces
-        newFormData.totalSquareMetersUsed = totalSquareMeters.toFixed(2)
-      } else {
-        newFormData.totalSquareMetersUsed = '0'
-      }
-    }
 
     setFormData(newFormData)
   }
@@ -300,20 +274,6 @@ export default function CuttingInventory() {
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     const newEditFormData = { ...editFormData, [name]: value }
-
-    if (name === 'pieceLength' || name === 'pieceWidth' || name === 'piecesCount') {
-      const length = name === 'pieceLength' ? parseFloat(value) : parseFloat(editFormData.pieceLength)
-      const width = name === 'pieceWidth' ? parseFloat(value) : parseFloat(editFormData.pieceWidth)
-      const pieces = name === 'piecesCount' ? parseFloat(value) : parseFloat(editFormData.piecesCount)
-
-      if (!isNaN(length) && !isNaN(width) && !isNaN(pieces) && length > 0 && width > 0 && pieces > 0) {
-        const squareMetersPerPiece = length * width
-        const totalSquareMeters = squareMetersPerPiece * pieces
-        newEditFormData.totalSquareMetersUsed = totalSquareMeters.toFixed(2)
-      } else {
-        newEditFormData.totalSquareMetersUsed = '0'
-      }
-    }
 
     setEditFormData(newEditFormData)
   }
@@ -373,8 +333,6 @@ export default function CuttingInventory() {
       return
     }
 
-    const totalUsed = parseFloat(formData.totalSquareMetersUsed)
-
     try {
       const cuttingId = await generateCuttingId()
 
@@ -384,9 +342,7 @@ export default function CuttingInventory() {
         fabricColor: formData.fabricColor,
         productName: formData.productName,
         piecesCount: parseInt(formData.piecesCount),
-        pieceLength: parseFloat(formData.pieceLength),
-        pieceWidth: parseFloat(formData.pieceWidth),
-        totalSquareMetersUsed: totalUsed,
+        totalLengthUsed: parseFloat(formData.totalLengthUsed),
         sizeType: 'Mixed',
         sizeBreakdown: sizeBreakdown,
         cuttingMaster: formData.cuttingMaster,
@@ -411,10 +367,8 @@ export default function CuttingInventory() {
           fabricType: '',
           fabricColor: '',
           productName: '',
-          pieceLength: '',
-          pieceWidth: '',
           piecesCount: '',
-          totalSquareMetersUsed: '0',
+          totalLengthUsed: '',
           cuttingMaster: '',
           tailorItemPerPiece: '',
           cuttingDate: new Date().toISOString().split('T')[0]
@@ -497,6 +451,7 @@ export default function CuttingInventory() {
                 <th style={{ textAlign: 'center' }}>Fabric Color</th>
                 <th style={{ textAlign: 'center' }}>Size Breakdown</th>
                 <th style={{ textAlign: 'center' }}>Total Quantity</th>
+                <th style={{ textAlign: 'center' }}>Total Length Used</th>
                 <th style={{ textAlign: 'center' }}>Cutting Master</th>
                 <th style={{ textAlign: 'center' }}>Cutting Price/Piece</th>
                 <th style={{ textAlign: 'center' }}>Total Price</th>
@@ -533,6 +488,9 @@ export default function CuttingInventory() {
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>{record.piecesCount}</td>
+                    <td style={{ textAlign: 'center', fontWeight: '500', color: '#059669' }}>
+                      {record.totalLengthUsed} m
+                    </td>
                     <td style={{ textAlign: 'center' }}>{record.cuttingMaster}</td>
                     <td style={{ textAlign: 'center' }}>₹{record.tailorItemPerPiece || 0}</td>
                     <td style={{ textAlign: 'center', fontWeight: '600', color: '#059669' }}>
@@ -549,7 +507,7 @@ export default function CuttingInventory() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     {isLoading ? 'Loading cutting records...' : 'No cutting records found'}
                   </td>
                 </tr>
@@ -646,35 +604,6 @@ export default function CuttingInventory() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="edit-pieceLength">Piece Length (meters) *</label>
-                  <input
-                    type="number"
-                    id="edit-pieceLength"
-                    name="pieceLength"
-                    value={editFormData.pieceLength}
-                    onChange={handleEditChange}
-                    placeholder="Length"
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="edit-pieceWidth">Piece Width (meters) *</label>
-                  <input
-                    type="number"
-                    id="edit-pieceWidth"
-                    name="pieceWidth"
-                    value={editFormData.pieceWidth}
-                    onChange={handleEditChange}
-                    placeholder="Width"
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
 
                 <div className="form-group">
                   <label htmlFor="edit-piecesCount" style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -694,13 +623,17 @@ export default function CuttingInventory() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="edit-totalSquareMetersUsed">Total Square Meters Used</label>
+                  <label htmlFor="edit-totalLengthUsed">Total Length Used (meters) *</label>
                   <input
-                    type="text"
-                    id="edit-totalSquareMetersUsed"
-                    value={editFormData.totalSquareMetersUsed + ' sq.m'}
-                    placeholder="Calculated automatically"
-                    readOnly
+                    type="number"
+                    id="edit-totalLengthUsed"
+                    name="totalLengthUsed"
+                    value={editFormData.totalLengthUsed}
+                    onChange={handleEditChange}
+                    placeholder="Enter total length used"
+                    min="0.1"
+                    step="0.1"
+                    required
                   />
                 </div>
               </div>
@@ -949,35 +882,6 @@ export default function CuttingInventory() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="modal-pieceLength">Piece Length (meters) *</label>
-                  <input
-                    type="number"
-                    id="modal-pieceLength"
-                    name="pieceLength"
-                    value={formData.pieceLength}
-                    onChange={handleChange}
-                    placeholder="Length"
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="modal-pieceWidth">Piece Width (meters) *</label>
-                  <input
-                    type="number"
-                    id="modal-pieceWidth"
-                    name="pieceWidth"
-                    value={formData.pieceWidth}
-                    onChange={handleChange}
-                    placeholder="Width"
-                    min="0.1"
-                    step="0.1"
-                    required
-                  />
-                </div>
 
                 <div className="form-group">
                   <label htmlFor="modal-piecesCount" style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -997,13 +901,17 @@ export default function CuttingInventory() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="modal-totalSquareMetersUsed">Total Square Meters Used</label>
+                  <label htmlFor="modal-totalLengthUsed">Total Length Used (meters) *</label>
                   <input
-                    type="text"
-                    id="modal-totalSquareMetersUsed"
-                    value={formData.totalSquareMetersUsed + ' sq.m'}
-                    placeholder="Calculated automatically"
-                    readOnly
+                    type="number"
+                    id="modal-totalLengthUsed"
+                    name="totalLengthUsed"
+                    value={formData.totalLengthUsed}
+                    onChange={handleChange}
+                    placeholder="Enter total length used"
+                    min="0.1"
+                    step="0.1"
+                    required
                   />
                 </div>
               </div>
@@ -1159,10 +1067,8 @@ export default function CuttingInventory() {
                       fabricType: '',
                       fabricColor: '',
                       productName: '',
-                      pieceLength: '',
-                      pieceWidth: '',
                       piecesCount: '',
-                      totalSquareMetersUsed: '0',
+                      totalLengthUsed: '',
                       cuttingMaster: '',
                       tailorItemPerPiece: '',
                       cuttingDate: new Date().toISOString().split('T')[0]

@@ -36,9 +36,7 @@ router.post('/', async (req, res) => {
       fabricColor,
       productName,
       piecesCount,
-      pieceLength,
-      pieceWidth,
-      totalSquareMetersUsed,
+      totalLengthUsed,
       sizeType,
       cuttingMaster,
       tailorItemPerPiece,
@@ -47,8 +45,7 @@ router.post('/', async (req, res) => {
 
     // Validate required fields
     if (!id || !fabricType || !fabricColor || !productName ||
-        !piecesCount || !pieceLength || !pieceWidth || !totalSquareMetersUsed ||
-        !cuttingMaster || !date) {
+        !piecesCount || !totalLengthUsed || !cuttingMaster || !date) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
@@ -58,9 +55,7 @@ router.post('/', async (req, res) => {
       fabricColor,
       productName,
       piecesCount: parseInt(piecesCount),
-      pieceLength: parseFloat(pieceLength),
-      pieceWidth: parseFloat(pieceWidth),
-      totalSquareMetersUsed: parseFloat(totalSquareMetersUsed),
+      totalLengthUsed: parseFloat(totalLengthUsed),
       sizeType: sizeType || 'Mixed',
       sizeBreakdown: req.body.sizeBreakdown || [],
       cuttingMaster,
@@ -121,8 +116,7 @@ router.put('/:id', async (req, res) => {
     const {
       productName,
       piecesCount,
-      pieceLength,
-      pieceWidth,
+      totalLengthUsed,
       sizeType,
       cuttingMaster,
       cuttingGivenTo,
@@ -133,16 +127,12 @@ router.put('/:id', async (req, res) => {
     // Update fields
     if (productName) cuttingRecord.productName = productName
     if (piecesCount) cuttingRecord.piecesCount = parseInt(piecesCount)
-    if (pieceLength) cuttingRecord.pieceLength = parseFloat(pieceLength)
-    if (pieceWidth) cuttingRecord.pieceWidth = parseFloat(pieceWidth)
+    if (totalLengthUsed) cuttingRecord.totalLengthUsed = parseFloat(totalLengthUsed)
     if (sizeType) cuttingRecord.sizeType = sizeType
     if (cuttingMaster) cuttingRecord.cuttingMaster = cuttingMaster
     if (cuttingGivenTo) cuttingRecord.cuttingGivenTo = cuttingGivenTo
     if (tailorItemPerPiece !== undefined) cuttingRecord.tailorItemPerPiece = parseFloat(tailorItemPerPiece) || 0
     if (notes !== undefined) cuttingRecord.notes = notes
-
-    // Recalculate total square meters used
-    cuttingRecord.totalSquareMetersUsed = cuttingRecord.piecesCount * cuttingRecord.pieceLength * cuttingRecord.pieceWidth
 
     await cuttingRecord.save()
     res.json({
