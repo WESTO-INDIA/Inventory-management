@@ -14,22 +14,20 @@ interface ManufacturingRecord {
   pricePerPiece: number
   totalAmount: number
   tailorName: string
-  status: 'Pending' | 'Completed' | 'deleted'
+  status: 'Pending' | 'Completed' | 'QR Deleted' | 'deleted'
   createdAt: string
 }
 
 interface CuttingRecord {
   _id: string
   id: string
-  tailorItemPerPiece?: number
+  cuttingPricePerPiece?: number
 }
 
 export default function ManufacturingInventory() {
   const [searchTerm, setSearchTerm] = useState('')
   const [manufacturingRecords, setManufacturingRecords] = useState<ManufacturingRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<ManufacturingRecord | null>(null)
-  const [showEditModal, setShowEditModal] = useState(false)
 
   const fetchManufacturingRecords = async () => {
     setIsLoading(true)
@@ -65,58 +63,36 @@ export default function ManufacturingInventory() {
     }
   }
 
-  const handleEdit = (record: ManufacturingRecord) => {
-    setEditingRecord(record)
-    setShowEditModal(true)
-  }
-
   const handleDelete = async (record: ManufacturingRecord) => {
+    if (!window.confirm(`Permanently delete ${record.manufacturingId}? This will also delete any associated QR codes.`)) {
+      return
+    }
+
     try {
-      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'deleted' })
+      const deleteResponse = await fetch(`${API_URL}/api/manufacturing-orders/${record._id}`, {
+        method: 'DELETE'
       })
 
-      if (updateResponse.ok) {
-        alert('✅ Manufacturing record marked as deleted!')
+      if (deleteResponse.ok) {
+        alert('✅ Manufacturing record permanently deleted!')
         fetchManufacturingRecords()
       } else {
-        alert('❌ Error marking record as deleted. Please try again.')
+        alert('❌ Error deleting record. Please try again.')
       }
     } catch (error) {
-      alert('❌ Error marking record as deleted. Please try again.')
+      alert('❌ Error deleting record. Please try again.')
     }
   }
 
-  const handleSaveEdit = async (updatedRecord: any) => {
-    try {
-      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${editingRecord?._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedRecord)
-      })
-
-      if (updateResponse.ok) {
-        alert('✅ Manufacturing record updated successfully!')
-        setShowEditModal(false)
-        setEditingRecord(null)
-        fetchManufacturingRecords()
-      } else {
-        alert('❌ Error updating manufacturing record. Please try again.')
-      }
-    } catch (error) {
-      alert('❌ Error updating manufacturing record. Please try again.')
-    }
-  }
-
-  const handleStatusChange = async (record: ManufacturingRecord, newStatus: 'Pending' | 'Completed') => {
+  const handleStatusChange = async (record: ManufacturingRecord, newStatus: 'Pending' | 'Completed' | 'QR Deleted') => {
     if (newStatus === 'Completed') {
       if (!window.confirm(`Mark ${record.manufacturingId} as completed and generate QR code?`)) {
+        return
+      }
+    }
+
+    if (newStatus === 'QR Deleted') {
+      if (!window.confirm(`Mark ${record.manufacturingId} as QR Deleted? This will remove it from Garment Inventory.`)) {
         return
       }
     }
@@ -162,6 +138,8 @@ export default function ManufacturingInventory() {
         } else {
           alert('✅ Status updated but failed to generate QR code')
         }
+      } else if (newStatus === 'QR Deleted') {
+        alert('✅ Status updated to QR Deleted')
       } else {
         alert('✅ Status updated to Pending')
       }
@@ -249,34 +227,34 @@ export default function ManufacturingInventory() {
                     </td>
                     <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {record.status === 'deleted' ? (
-                        <span style={{ color: 'red', fontWeight: '500' }}>Deleted</span>
-                      ) : (
-                        <select
-                          value={record.status}
-                          onChange={(e) => handleStatusChange(record, e.target.value as 'Pending' | 'Completed')}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: record.status === 'Completed' ? '#dcfce7' : '#fef3c7',
-                            color: record.status === 'Completed' ? '#059669' : '#d97706',
-                            fontWeight: '500',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-                      )}
+                      <select
+                        value={record.status}
+                        onChange={(e) => handleStatusChange(record, e.target.value as 'Pending' | 'Completed' | 'QR Deleted')}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid #d1d5db',
+                          backgroundColor:
+                            record.status === 'Completed' ? '#dcfce7' :
+                            record.status === 'QR Deleted' ? '#fee2e2' :
+                            '#fef3c7',
+                          color:
+                            record.status === 'Completed' ? '#059669' :
+                            record.status === 'QR Deleted' ? '#dc2626' :
+                            '#d97706',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                        <option value="QR Deleted">QR Deleted</option>
+                      </select>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      {record.status !== 'deleted' && (
-                        <div className="action-buttons">
-                          <button className="action-btn edit" onClick={() => handleEdit(record)}>✏️</button>
-                          <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
-                        </div>
-                      )}
+                      <div className="action-buttons">
+                        <button className="action-btn delete" onClick={() => handleDelete(record)}>🗑️</button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -291,99 +269,6 @@ export default function ManufacturingInventory() {
           </table>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      {showEditModal && editingRecord && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '10px',
-            width: '90%',
-            maxWidth: '500px',
-            maxHeight: '90vh',
-            overflow: 'auto'
-          }}>
-            <h2 style={{ marginBottom: '20px', color: '#374151' }}>Edit Manufacturing Record</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault()
-              const formData = new FormData(e.target as HTMLFormElement)
-              const quantity = parseInt(formData.get('quantity') as string) || 0
-              const pricePerPiece = parseFloat(formData.get('pricePerPiece') as string) || 0
-              const updatedRecord = {
-                quantity: quantity,
-                pricePerPiece: pricePerPiece,
-                totalAmount: quantity * pricePerPiece,
-                tailorName: formData.get('tailorName') as string
-              }
-              handleSaveEdit(updatedRecord)
-            }}>
-              <div className="form-group">
-                <label htmlFor="quantity">Quantity *</label>
-                <input
-                  type="number"
-                  id="quantity"
-                  name="quantity"
-                  defaultValue={editingRecord.quantity}
-                  min="1"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="pricePerPiece">Price Per Piece (₹) *</label>
-                <input
-                  type="number"
-                  id="pricePerPiece"
-                  name="pricePerPiece"
-                  defaultValue={editingRecord.pricePerPiece}
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="tailorName">Tailor Name *</label>
-                <input
-                  type="text"
-                  id="tailorName"
-                  name="tailorName"
-                  defaultValue={editingRecord.tailorName}
-                  required
-                />
-              </div>
-
-              <div className="btn-group">
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setEditingRecord(null)
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   )

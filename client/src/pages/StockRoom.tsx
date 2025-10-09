@@ -39,7 +39,7 @@ interface Transaction {
   source: string
 }
 
-export default function AdminDashboard() {
+export default function StockRoom() {
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [fabricStocks, setFabricStocks] = useState<FabricStock[]>([])
@@ -68,24 +68,33 @@ export default function AdminDashboard() {
       const fabricResponse = await fetch(`${API_URL}/api/fabrics`)
       if (fabricResponse.ok) {
         const fabricData = await fabricResponse.json()
-        setFabricStocks(fabricData)
+        setFabricStocks(Array.isArray(fabricData) ? fabricData : [])
+      } else {
+        setFabricStocks([])
       }
 
       // Fetch garment stocks (QR products)
       const garmentResponse = await fetch(`${API_URL}/api/qr-products`)
       if (garmentResponse.ok) {
         const garmentData = await garmentResponse.json()
-        setGarmentStocks(garmentData)
+        setGarmentStocks(Array.isArray(garmentData) ? garmentData : [])
+      } else {
+        setGarmentStocks([])
       }
 
       // Fetch transactions
       const transactionResponse = await fetch(`${API_URL}/api/transactions`)
       if (transactionResponse.ok) {
         const transactionData = await transactionResponse.json()
-        setTransactions(transactionData)
+        setTransactions(Array.isArray(transactionData) ? transactionData : [])
+      } else {
+        setTransactions([])
       }
     } catch (error) {
       console.error('Error fetching stock data:', error)
+      setFabricStocks([])
+      setGarmentStocks([])
+      setTransactions([])
     } finally {
       setIsLoading(false)
     }
@@ -118,31 +127,41 @@ export default function AdminDashboard() {
     })
   }
 
-  // Calculate stock statistics
-  const totalFabricStock = fabricStocks.reduce((sum, fabric) => sum + fabric.quantity, 0)
-  const totalGarmentStock = garmentStocks.reduce((sum, garment) => sum + garment.quantity, 0)
+  // Calculate stock statistics - ensure arrays exist
+  const totalFabricStock = Array.isArray(fabricStocks)
+    ? fabricStocks.reduce((sum, fabric) => sum + fabric.quantity, 0)
+    : 0
+  const totalGarmentStock = Array.isArray(garmentStocks)
+    ? garmentStocks.reduce((sum, garment) => sum + garment.quantity, 0)
+    : 0
 
-  // Filter transactions for fabric stock in/out
-  const fabricStockInTransactions = transactions.filter(
-    t => t.itemType === 'FABRIC' && (t.action === 'STOCK_IN' || t.action === 'ADD')
-  )
-  const fabricStockOutTransactions = transactions.filter(
-    t => t.itemType === 'FABRIC' && (t.action === 'STOCK_OUT' || t.action === 'REMOVE')
-  )
+  // Filter transactions for fabric stock in/out - ensure array exists
+  const fabricStockInTransactions = Array.isArray(transactions)
+    ? transactions.filter(t => t.itemType === 'FABRIC' && (t.action === 'STOCK_IN' || t.action === 'ADD'))
+    : []
+  const fabricStockOutTransactions = Array.isArray(transactions)
+    ? transactions.filter(t => t.itemType === 'FABRIC' && (t.action === 'STOCK_OUT' || t.action === 'REMOVE'))
+    : []
 
-  // Filter transactions for garment stock
-  const garmentTransactions = transactions.filter(
-    t => t.itemType === 'QR_GENERATED' || t.itemType === 'MANUFACTURING'
-  )
+  // Filter transactions for garment stock in/out
+  const garmentStockInTransactions = Array.isArray(transactions)
+    ? transactions.filter(t => (t.itemType === 'QR_GENERATED' || t.itemType === 'MANUFACTURING') && (t.action === 'ADD' || t.action === 'STOCK_IN' || t.action === 'QR_GENERATED'))
+    : []
+  const garmentStockOutTransactions = Array.isArray(transactions)
+    ? transactions.filter(t => (t.itemType === 'QR_GENERATED' || t.itemType === 'MANUFACTURING') && (t.action === 'REMOVE' || t.action === 'STOCK_OUT'))
+    : []
 
-  const quickActions = [
-    { name: 'Fabric Inventory', icon: '📦', route: '/inventory' },
-    { name: 'Cutting Inventory', icon: '✂️', route: '/cutting-inventory' },
-    { name: 'Assign to Tailor', icon: '🏭', route: '/manufacturing' },
-    { name: 'Garment Inventory', icon: '📱', route: '/generate-qr' },
-    { name: 'Employees', icon: '👥', route: '/employees' },
-    { name: 'Transactions', icon: '💰', route: '/transactions' }
-  ]
+  // Calculate stock room statistics
+  const totalFabricItems = fabricStocks.length
+  const totalGarmentItems = garmentStocks.length
+  const lowStockFabrics = Array.isArray(fabricStocks)
+    ? fabricStocks.filter(f => f.status === 'Low Stock' || f.status === 'Out of Stock').length
+    : 0
+
+  // Calculate total value (if available)
+  const totalFabricValue = Array.isArray(fabricStocks)
+    ? fabricStocks.reduce((sum, fabric) => sum + ((fabric as any).totalPrice || 0), 0)
+    : 0
 
   if (isLoading) {
     return (
@@ -220,46 +239,54 @@ export default function AdminDashboard() {
               Available
             </span>
           </div>
-          <h3 className="text-gray-600 text-sm mb-1">Garment Stock</h3>
-          <p className="text-3xl font-bold text-black">{garmentStocks.length}</p>
+          <h3 className="text-gray-600 text-sm mb-1">garment stock in</h3>
+          <p className="text-3xl font-bold text-black">{garmentStockInTransactions.length}</p>
           <p className="text-sm text-gray-600 mt-2">
             <span className="text-black font-semibold">{totalGarmentStock}</span> pieces
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 transform hover:scale-105 transition-all duration-300 hover:shadow-2xl border-2 border-purple-500">
+        <div className="bg-white rounded-2xl shadow-lg p-6 transform hover:scale-105 transition-all duration-300 hover:shadow-2xl border-2 border-orange-500">
           <div className="flex items-center justify-between mb-4">
-            <div className="bg-purple-100 p-3 rounded-xl">
-              <span className="text-2xl">📊</span>
+            <div className="bg-orange-100 p-3 rounded-xl">
+              <span className="text-2xl">📤</span>
             </div>
-            <span className="text-xs bg-purple-500 text-white px-2 py-1 rounded-full font-semibold">
-              All Time
+            <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full font-semibold">
+              Stock Out
             </span>
           </div>
-          <h3 className="text-gray-600 text-sm mb-1">Total Transactions</h3>
-          <p className="text-3xl font-bold text-black">{transactions.length}</p>
+          <h3 className="text-gray-600 text-sm mb-1">Garment Stock Out</h3>
+          <p className="text-3xl font-bold text-black">{garmentStockOutTransactions.length}</p>
           <p className="text-sm text-gray-600 mt-2">
-            <span className="text-black font-semibold">{garmentTransactions.length}</span> garment
+            <span className="text-black font-semibold">{garmentStockInTransactions.length}</span> stock in
           </p>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-bold text-black mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {quickActions.map((action, index) => (
-            <button
-              key={index}
-              onClick={() => navigate(action.route)}
-              className="relative overflow-hidden rounded-xl p-4 bg-white border-2 border-black text-black transform hover:scale-110 transition-all duration-300 hover:shadow-xl"
-            >
-              <div className="relative z-10">
-                <div className="text-3xl mb-2">{action.icon}</div>
-                <p className="text-sm font-medium">{action.name}</p>
-              </div>
-            </button>
-          ))}
+      {/* Additional Stock Room Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white border-2 border-black rounded-2xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-black font-semibold">Total Fabric Items</h3>
+            <span className="text-2xl">📦</span>
+          </div>
+          <p className="text-4xl font-bold text-black">{totalFabricItems}</p>
+        </div>
+
+        <div className="bg-white border-2 border-black rounded-2xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-black font-semibold">Total Garment Items</h3>
+            <span className="text-2xl">👔</span>
+          </div>
+          <p className="text-4xl font-bold text-black">{totalGarmentItems}</p>
+        </div>
+
+        <div className="bg-white border-2 border-black rounded-2xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-black font-semibold">Fabric Inventory Value</h3>
+            <span className="text-2xl">💰</span>
+          </div>
+          <p className="text-4xl font-bold text-black">₹{totalFabricValue.toFixed(0)}</p>
         </div>
       </div>
 
@@ -348,83 +375,54 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Transactions - Full Width */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-black">📊 Recent Transactions</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate('/transactions')}
-              className="text-xs bg-gray-200 text-black px-3 py-1 rounded-full hover:bg-gray-300 transition-colors"
-            >
-              View All
-            </button>
-            <button
-              onClick={fetchStockData}
-              className="text-xs bg-black text-white px-3 py-1 rounded-full hover:bg-gray-800 transition-colors"
-            >
-              Refresh
-            </button>
+      {/* Stock Room Summary */}
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-black mb-6 flex items-center">
+          <span className="text-3xl mr-3">📍</span>
+          Stock Room Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-700 mb-3">📦 Fabric Metrics</h3>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Total Stock:</span>
+              <span className="font-bold text-blue-600">{totalFabricStock} meters</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Stock In Transactions:</span>
+              <span className="font-bold text-green-600">{fabricStockInTransactions.length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Stock Out Transactions:</span>
+              <span className="font-bold text-red-600">{fabricStockOutTransactions.length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Low Stock Alerts:</span>
+              <span className={`font-bold ${lowStockFabrics > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {lowStockFabrics > 0 ? `${lowStockFabrics} items` : 'None'}
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Transaction ID</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Type</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Item</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Action</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Quantity</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Stock</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Performed By</th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.length > 0 ? (
-                transactions.slice(0, 10).map((transaction) => (
-                  <tr key={transaction._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 text-sm text-gray-800 font-mono">{transaction.transactionId}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        transaction.itemType === 'FABRIC' ? 'bg-blue-100 text-blue-700' :
-                        transaction.itemType === 'QR_GENERATED' ? 'bg-green-100 text-green-700' :
-                        transaction.itemType === 'MANUFACTURING' ? 'bg-purple-100 text-purple-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {transaction.itemType}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-800">{transaction.itemName}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        transaction.action === 'STOCK_IN' || transaction.action === 'ADD' ? 'bg-green-100 text-green-700' :
-                        transaction.action === 'STOCK_OUT' || transaction.action === 'REMOVE' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {transaction.action}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-right font-semibold text-black">{transaction.quantity}</td>
-                    <td className="py-3 px-4 text-sm text-right">
-                      <span className="text-gray-500">{transaction.previousStock}</span>
-                      <span className="mx-1">→</span>
-                      <span className="font-semibold text-black">{transaction.newStock}</span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{transaction.performedBy}</td>
-                    <td className="py-3 px-4 text-xs text-gray-500">{formatDateTime(transaction.timestamp)}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-gray-500">
-                    No transactions available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-700 mb-3">👔 Garment Metrics</h3>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Total Pieces:</span>
+              <span className="font-bold text-green-600">{totalGarmentStock} pcs</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Stock In Transactions:</span>
+              <span className="font-bold text-green-600">{garmentStockInTransactions.length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Stock Out Transactions:</span>
+              <span className="font-bold text-orange-600">{garmentStockOutTransactions.length}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-gray-600">Total Items:</span>
+              <span className="font-bold text-purple-600">{totalGarmentItems}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -38,8 +38,6 @@ export default function QRInventory() {
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [showManualForm, setShowManualForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<QRProduct | null>(null)
-  const [showEditModal, setShowEditModal] = useState(false)
   const [manualFormData, setManualFormData] = useState({
     productName: '',
     fabricType: '',
@@ -59,6 +57,8 @@ export default function QRInventory() {
         const records = await response.json()
 
         // Filter only completed manufacturing orders
+        // This excludes: Pending, QR Deleted, deleted
+        // So when a QR is deleted, it disappears from this list automatically
         const qrEligibleRecords = records.filter((record: ManufacturingRecord) =>
           record.status === 'Completed'
         )
@@ -279,104 +279,88 @@ export default function QRInventory() {
   }
 
   const handleDelete = async (product: QRProduct) => {
-    if (window.confirm(`Delete QR for ${product.productName}?`)) {
-      try {
-        // Check if it's a manual product
-        if (product.isManual || product.cuttingId === 'MANUAL') {
-          // First try to find in qr-products collection
-          const checkResponse = await fetch(`${API_URL}/api/qr-products`)
-          if (checkResponse.ok) {
-            const qrProducts = await checkResponse.json()
-            const qrProduct = qrProducts.find((qr: any) =>
-              qr.manufacturingId === product.manufacturingId
-            )
-
-            if (qrProduct) {
-              // Delete from qr-products collection
-              const response = await fetch(`${API_URL}/api/qr-products/${qrProduct._id}`, {
-                method: 'DELETE'
-              })
-              if (response.ok) {
-                alert('✅ Product deleted successfully!')
-                await fetchQRProducts()
-              } else {
-                alert('❌ Error deleting product')
-              }
-            } else {
-              alert('❌ Product not found in database')
-            }
-          }
-        } else {
-          // For auto-generated products, delete from manufacturing orders
-          const response = await fetch(`${API_URL}/api/manufacturing-orders/${product._id}`, {
-            method: 'DELETE'
-          })
-          if (response.ok) {
-            alert('✅ Auto-generated product deleted successfully!')
-            await fetchQRProducts()
-          } else {
-            alert('❌ Error deleting auto-generated product')
-          }
-        }
-      } catch (error) {
-        alert('❌ Error deleting product')
-      }
+    if (!window.confirm(`Delete QR for ${product.productName}?`)) {
+      return
     }
-  }
-
-  const handleEdit = (product: QRProduct) => {
-    setEditingProduct(product)
-    setShowEditModal(true)
-  }
-
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingProduct) return
 
     try {
-      const formData = new FormData(e.target as HTMLFormElement)
-      const updatedData = {
-        productName: formData.get('productName') as string,
-        fabricType: formData.get('fabricType') as string,
-        fabricColor: formData.get('color') as string,
-        size: formData.get('size') as string,
-        quantity: parseInt(formData.get('quantity') as string)
-      }
-
-      if (editingProduct.isManual || editingProduct.cuttingId === 'MANUAL') {
-        const response = await fetch(`${API_URL}/api/qr-products/${editingProduct._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData)
-        })
-
-        if (response.ok) {
-          alert('✅ Product updated successfully!')
-          setShowEditModal(false)
-          setEditingProduct(null)
-          fetchQRProducts()
+      // MANUAL PRODUCTS: Delete completely from qr-products collection
+      if (product.isManual || product.cuttingId === 'MANUAL') {
+        const qrProductsResponse = await fetch(`${API_URL}/api/qr-products`)
+        if (!qrProductsResponse.ok) {
+          alert('❌ Failed to fetch QR products')
+          return
         }
-      } else {
-        // For auto-generated products, update the manufacturing order
-        const response = await fetch(`${API_URL}/api/manufacturing-orders/${editingProduct._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData)
+
+        const allQRProducts = await qrProductsResponse.json()
+        const manualProduct = allQRProducts.find((qr: any) =>
+          qr.manufacturingId === product.manufacturingId
+        )
+
+        if (!manualProduct) {
+          alert('❌ Manual product not found in database')
+          return
+        }
+
+        const deleteResponse = await fetch(`${API_URL}/api/qr-products/${manualProduct._id}`, {
+          method: 'DELETE'
         })
 
-        if (response.ok) {
-          alert('✅ Auto-generated product updated successfully!')
-          setShowEditModal(false)
-          setEditingProduct(null)
-          fetchQRProducts()
+        if (deleteResponse.ok) {
+          alert('✅ Manual product deleted successfully!')
+          await fetchQRProducts()
         } else {
-          alert('❌ Error updating auto-generated product')
+          alert('❌ Failed to delete manual product')
+        }
+        return
+      }
+
+      // AUTO-GENERATED PRODUCTS:
+      // Step 1: Delete from qr-products collection if it exists there
+      // Step 2: Update manufacturing order status to "QR Deleted"
+
+      // First, check if there's a QR product entry for this manufacturing order
+      const qrProductsResponse = await fetch(`${API_URL}/api/qr-products`)
+      if (qrProductsResponse.ok) {
+        const allQRProducts = await qrProductsResponse.json()
+        const qrProductEntry = allQRProducts.find((qr: any) =>
+          qr.manufacturingId === product.manufacturingId
+        )
+
+        // If QR was generated and stored in qr-products, delete it first
+        if (qrProductEntry) {
+          await fetch(`${API_URL}/api/qr-products/${qrProductEntry._id}`, {
+            method: 'DELETE'
+          })
         }
       }
+
+      // Now update the manufacturing order status to "QR Deleted"
+      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${product._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'QR Deleted'
+        })
+      })
+
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json().catch(() => ({ message: 'Unknown error' }))
+        alert(`❌ Failed to update status: ${errorData.message}`)
+        return
+      }
+
+      alert(`✅ QR deleted successfully!\n\nManufacturing ID: ${product.manufacturingId}\nStatus: QR Deleted\n\nCheck Manufacturing Inventory to verify.`)
+      await fetchQRProducts()
+
     } catch (error) {
-      alert('❌ Error updating product')
+      console.error('Delete error:', error)
+      alert('❌ Error deleting product. Please try again.')
     }
   }
+
 
   const filteredProducts = qrProducts.filter(product =>
     product.manufacturingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -537,7 +521,6 @@ export default function QRInventory() {
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div className="action-buttons">
-                        <button className="action-btn edit" onClick={() => handleEdit(product)}>✏️</button>
                         <button className="action-btn delete" onClick={() => handleDelete(product)}>🗑️</button>
                       </div>
                     </td>
@@ -682,110 +665,6 @@ export default function QRInventory() {
         </div>
       )}
 
-      {/* Edit Modal */}
-      {showEditModal && editingProduct && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '10px',
-            width: '90%',
-            maxWidth: '500px'
-          }}>
-            <h2 style={{ marginBottom: '20px', color: '#374151' }}>Edit Product</h2>
-            <form onSubmit={handleSaveEdit}>
-              <div className="form-group">
-                <label htmlFor="productName">Product Name *</label>
-                <input
-                  type="text"
-                  name="productName"
-                  defaultValue={editingProduct.productName}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fabricType">Fabric Type *</label>
-                <input
-                  type="text"
-                  name="fabricType"
-                  defaultValue={editingProduct.fabricType || 'N/A'}
-                  placeholder="Enter fabric type"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="color">Color *</label>
-                <input
-                  type="text"
-                  name="color"
-                  defaultValue={editingProduct.color}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="size">Size *</label>
-                <select
-                  name="size"
-                  defaultValue={editingProduct.size}
-                  required
-                >
-                  <option value="XXS">XXS</option>
-                  <option value="XS">XS</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                  <option value="XXXL">XXXL</option>
-                  <option value="Free Size">Free Size</option>
-                  <option value="N/A">N/A</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="quantity">Quantity *</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  defaultValue={editingProduct.quantity}
-                  min="1"
-                  required
-                />
-              </div>
-
-              <div className="btn-group">
-                <button type="submit" className="btn btn-primary">
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setShowEditModal(false)
-                    setEditingProduct(null)
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

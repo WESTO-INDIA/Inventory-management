@@ -11,7 +11,7 @@ export interface IManufacturingOrder extends Document {
   tailorName: string
   pricePerPiece: number
   totalAmount: number
-  status: 'Pending' | 'Completed'
+  status: 'Pending' | 'Completed' | 'QR Deleted' | 'deleted'
   createdAt: Date
   updatedAt: Date
 }
@@ -73,7 +73,7 @@ const ManufacturingOrderSchema: Schema = new Schema({
   status: {
     type: String,
     required: true,
-    enum: ['Pending', 'Completed'],
+    enum: ['Pending', 'Completed', 'QR Deleted', 'deleted'],
     default: 'Pending'
   }
 }, {

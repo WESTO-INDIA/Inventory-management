@@ -6,6 +6,8 @@ export interface ITransaction extends Document {
   itemType: 'FABRIC' | 'MANUFACTURING' | 'CUTTING' | 'QR_GENERATED' | 'UNKNOWN'
   itemId: string
   itemName: string
+  color?: string
+  size?: string
   action: 'ADD' | 'REMOVE' | 'STOCK_IN' | 'STOCK_OUT' | 'QR_GENERATED'
   quantity: number
   previousStock: number
@@ -40,6 +42,14 @@ const TransactionSchema: Schema = new Schema({
   itemName: {
     type: String,
     required: true,
+    trim: true
+  },
+  color: {
+    type: String,
+    trim: true
+  },
+  size: {
+    type: String,
     trim: true
   },
   action: {

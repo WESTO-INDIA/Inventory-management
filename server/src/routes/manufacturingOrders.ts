@@ -51,21 +51,14 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' })
     }
 
-    // Get cutting record to update size breakdown
+    // Validate that cutting record exists (for reference only, not for quantity checking)
     const cuttingRecord = await CuttingRecord.findOne({ id: cuttingId })
     if (!cuttingRecord) {
       return res.status(404).json({ message: 'Cutting record not found' })
     }
 
-    // Check if there's enough quantity for the specified size
-    const sizeBreakdown = cuttingRecord.sizeBreakdown || []
-    const sizeItem = sizeBreakdown.find(sb => sb.size === size)
-
-    if (!sizeItem || sizeItem.quantity < parseInt(quantity)) {
-      return res.status(400).json({
-        message: `Not enough quantity for size ${size}. Available: ${sizeItem?.quantity || 0}, Requested: ${quantity}`
-      })
-    }
+    // Note: We do NOT check or update cutting record quantities
+    // Cutting inventory remains unchanged
 
     // Use provided manufacturing ID or generate one
     let finalManufacturingId = manufacturingId
@@ -97,21 +90,8 @@ router.post('/', async (req, res) => {
 
     await manufacturingOrder.save()
 
-    // Update cutting record size breakdown - decrease the quantity for the assigned size
-    const updatedSizeBreakdown = sizeBreakdown.map(sb => {
-      if (sb.size === size) {
-        return {
-          size: sb.size,
-          quantity: sb.quantity - parseInt(quantity)
-        }
-      }
-      return sb
-    })
-    // Keep all sizes including 0 quantity to show in cutting inventory
-
-    cuttingRecord.sizeBreakdown = updatedSizeBreakdown
-
-    await cuttingRecord.save()
+    // Note: Cutting record quantities are NOT automatically updated
+    // They remain unchanged in the cutting inventory
 
     res.status(201).json({
       message: 'Manufacturing order created successfully',
@@ -126,10 +106,17 @@ router.post('/', async (req, res) => {
 // PUT update manufacturing order
 router.put('/:id', async (req, res) => {
   try {
+    console.log('PUT /manufacturing-orders/:id called')
+    console.log('ID:', req.params.id)
+    console.log('Request body:', req.body)
+
     const manufacturingOrder = await ManufacturingOrder.findById(req.params.id)
     if (!manufacturingOrder) {
+      console.log('Manufacturing order not found')
       return res.status(404).json({ message: 'Manufacturing order not found' })
     }
+
+    console.log('Current status:', manufacturingOrder.status)
 
     const {
       fabricType,
@@ -152,9 +139,14 @@ router.put('/:id', async (req, res) => {
     if (tailorName) manufacturingOrder.tailorName = tailorName
     if (pricePerPiece !== undefined) manufacturingOrder.pricePerPiece = parseFloat(pricePerPiece)
     if (totalAmount !== undefined) manufacturingOrder.totalAmount = parseFloat(totalAmount)
-    if (status) manufacturingOrder.status = status
+    if (status) {
+      console.log('Updating status to:', status)
+      manufacturingOrder.status = status
+    }
 
     await manufacturingOrder.save()
+    console.log('New status after save:', manufacturingOrder.status)
+
     res.json({
       message: 'Manufacturing order updated successfully',
       manufacturingOrder
@@ -173,10 +165,17 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Manufacturing order not found' })
     }
 
+    // Also delete any associated QR products
+    const QRProduct = require('../models/QRProduct').QRProduct
+    await QRProduct.deleteMany({ manufacturingId: manufacturingOrder.manufacturingId })
+
+    // Delete the manufacturing order
     await ManufacturingOrder.findByIdAndDelete(req.params.id)
-    res.json({ message: 'Manufacturing order deleted successfully' })
+
+    res.json({ message: 'Manufacturing order and associated QR codes deleted successfully' })
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error deleting manufacturing order:', error)
+    res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
 

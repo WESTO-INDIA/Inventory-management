@@ -5,7 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages
 import Login from './pages/Login'
-import AdminDashboard from './pages/AdminDashboard'
+import StockRoom from './pages/StockRoom'
 import EmployeePortal from './pages/EmployeePortal'
 import Inventory from './pages/Inventory'
 import CuttingInventory from './pages/CuttingInventory'
@@ -39,7 +39,8 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/admin-dashboard" element={<StockRoom />} />
+          <Route path="/stock-room" element={<StockRoom />} />
           <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/cutting-inventory" element={<CuttingInventory />} />

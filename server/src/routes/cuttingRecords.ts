@@ -39,7 +39,7 @@ router.post('/', async (req, res) => {
       totalLengthUsed,
       sizeType,
       cuttingMaster,
-      tailorItemPerPiece,
+      cuttingPricePerPiece,
       date
     } = req.body
 
@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
       sizeType: sizeType || 'Mixed',
       sizeBreakdown: req.body.sizeBreakdown || [],
       cuttingMaster,
-      tailorItemPerPiece: parseFloat(tailorItemPerPiece) || 0,
+      cuttingPricePerPiece: parseFloat(cuttingPricePerPiece) || 0,
       date
     })
 
@@ -80,67 +80,6 @@ router.post('/', async (req, res) => {
     } else {
       res.status(500).json({ message: `Server error: ${error.message}` })
     }
-  }
-})
-
-// PATCH update cutting record (partial update)
-router.patch('/:id', async (req, res) => {
-  try {
-    const cuttingRecord = await CuttingRecord.findById(req.params.id)
-    if (!cuttingRecord) {
-      return res.status(404).json({ message: 'Cutting record not found' })
-    }
-
-    // Update only the fields provided
-    Object.keys(req.body).forEach(key => {
-      if (req.body[key] !== undefined && key !== '_id') {
-        (cuttingRecord as any)[key] = req.body[key]
-      }
-    })
-
-    await cuttingRecord.save()
-    res.json(cuttingRecord)
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' })
-  }
-})
-
-// PUT update cutting record
-router.put('/:id', async (req, res) => {
-  try {
-    const cuttingRecord = await CuttingRecord.findById(req.params.id)
-    if (!cuttingRecord) {
-      return res.status(404).json({ message: 'Cutting record not found' })
-    }
-
-    const {
-      productName,
-      piecesCount,
-      totalLengthUsed,
-      sizeType,
-      cuttingMaster,
-      cuttingGivenTo,
-      tailorItemPerPiece,
-      notes
-    } = req.body
-
-    // Update fields
-    if (productName) cuttingRecord.productName = productName
-    if (piecesCount) cuttingRecord.piecesCount = parseInt(piecesCount)
-    if (totalLengthUsed) cuttingRecord.totalLengthUsed = parseFloat(totalLengthUsed)
-    if (sizeType) cuttingRecord.sizeType = sizeType
-    if (cuttingMaster) cuttingRecord.cuttingMaster = cuttingMaster
-    if (cuttingGivenTo) cuttingRecord.cuttingGivenTo = cuttingGivenTo
-    if (tailorItemPerPiece !== undefined) cuttingRecord.tailorItemPerPiece = parseFloat(tailorItemPerPiece) || 0
-    if (notes !== undefined) cuttingRecord.notes = notes
-
-    await cuttingRecord.save()
-    res.json({
-      message: 'Cutting record updated successfully',
-      cuttingRecord
-    })
-  } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
   }
 })
 

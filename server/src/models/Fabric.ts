@@ -7,6 +7,7 @@ export interface IFabric extends Document {
   length: number
   quantity: number
   purchasePrice?: number
+  totalPrice?: number
   notes?: string
   status: 'In Stock' | 'Low Stock' | 'Out of Stock'
   dateReceived: Date
@@ -41,6 +42,10 @@ const FabricSchema: Schema = new Schema({
     min: 0
   },
   purchasePrice: {
+    type: Number,
+    min: 0
+  },
+  totalPrice: {
     type: Number,
     min: 0
   },

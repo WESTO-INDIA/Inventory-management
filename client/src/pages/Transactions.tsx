@@ -18,6 +18,8 @@ interface Transaction {
   type?: string
   productInfo?: any
   generatedBy?: string
+  color?: string
+  size?: string
 }
 
 interface GarmentProduct {
@@ -335,7 +337,14 @@ export default function Transactions() {
             placeholder="Search by item name or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: 1, minWidth: '200px' }}
+            style={{
+              flex: 1,
+              minWidth: '200px',
+              border: '2px solid #000',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontSize: '14px'
+            }}
           />
 
           {/* Date Filter */}
@@ -343,14 +352,27 @@ export default function Transactions() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            style={{ minWidth: '150px' }}
+            style={{
+              minWidth: '150px',
+              border: '2px solid #000',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontSize: '14px'
+            }}
           />
 
           {/* Action Filter */}
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
-            style={{ minWidth: '120px' }}
+            style={{
+              minWidth: '120px',
+              border: '2px solid #000',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontSize: '14px',
+              backgroundColor: 'white'
+            }}
           >
             <option value="all">All Actions</option>
             <option value="add">Additions</option>
@@ -362,7 +384,14 @@ export default function Transactions() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as any)}
-            style={{ minWidth: '120px' }}
+            style={{
+              minWidth: '120px',
+              border: '2px solid #000',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              fontSize: '14px',
+              backgroundColor: 'white'
+            }}
           >
             <option value="all">All Types</option>
             <option value="FABRIC">Fabric</option>
@@ -373,34 +402,22 @@ export default function Transactions() {
 
           {/* Action Buttons */}
           <button
-            onClick={() => setShowAddStockModal(true)}
-            className="btn btn-primary"
-            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-          >
-            + Add/Remove Stock
-          </button>
-
-          <button
             onClick={loadTransactions}
             className="btn btn-secondary"
+            style={{
+              borderRadius: '12px',
+              padding: '10px 20px',
+              border: '2px solid #000',
+              backgroundColor: '#f3f4f6',
+              color: '#000',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
           >
             🔄 Refresh
-          </button>
-
-          <button
-            onClick={exportTransactions}
-            className="btn btn-primary"
-            disabled={transactions.length === 0}
-          >
-            📥 Export
-          </button>
-
-          <button
-            onClick={clearTransactions}
-            className="btn btn-danger"
-            disabled={transactions.length === 0}
-          >
-            🗑️ Clear All
           </button>
         </div>
       </div>
@@ -416,6 +433,8 @@ export default function Transactions() {
                 <th style={{ textAlign: 'center' }}>Date & Time</th>
                 <th style={{ textAlign: 'center' }}>Item Type</th>
                 <th style={{ textAlign: 'center' }}>Item Name</th>
+                <th style={{ textAlign: 'center' }}>Color</th>
+                <th style={{ textAlign: 'center' }}>Size</th>
                 <th style={{ textAlign: 'center' }}>Item ID</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
                 <th style={{ textAlign: 'center' }}>Quantity</th>
@@ -433,6 +452,12 @@ export default function Transactions() {
                       </span>
                     </td>
                     <td style={{ fontWeight: '500', textAlign: 'center' }}>{transaction.itemName}</td>
+                    <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                      {transaction.color || transaction.productInfo?.color || '-'}
+                    </td>
+                    <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                      {transaction.size || transaction.productInfo?.size || '-'}
+                    </td>
                     <td style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>{transaction.itemId}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`badge ${getActionBadgeClass(transaction.action)}`}>
@@ -461,7 +486,7 @@ export default function Transactions() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="empty-state">
+                  <td colSpan={9} className="empty-state">
                     <div className="empty-state-icon">📊</div>
                     <h3>No Transactions Found</h3>
                     <p>

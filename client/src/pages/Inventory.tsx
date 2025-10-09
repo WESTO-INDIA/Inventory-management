@@ -11,6 +11,7 @@ interface InventoryItem {
   status: string
   length: number
   purchasePrice: number
+  totalPrice: number
   notes: string
   dateRegistered: string
 }
@@ -20,6 +21,7 @@ interface FabricForm {
   color: string
   length: string
   purchasePrice: string
+  totalPrice: string
   notes: string
 }
 
@@ -36,6 +38,7 @@ export default function Inventory() {
     color: '',
     length: '',
     purchasePrice: '',
+    totalPrice: '0',
     notes: ''
   })
 
@@ -76,17 +79,25 @@ export default function Inventory() {
       const response = await fetch(`${API_URL}/api/fabrics`)
       if (response.ok) {
         const fabrics = await response.json()
-        const inventoryItems = fabrics.map((fabric: any) => ({
-          id: fabric.fabricId || 'N/A',
-          fabricType: fabric.fabricType,
-          color: fabric.color,
-          quantity: fabric.quantity,
-          status: fabric.status,
-          length: fabric.length,
-          purchasePrice: fabric.purchasePrice || 0,
-          notes: fabric.notes || '',
-          dateRegistered: fabric.dateReceived || fabric.createdAt || new Date().toISOString()
-        }))
+        const inventoryItems = fabrics.map((fabric: any) => {
+          // Calculate totalPrice if not present in database
+          const purchasePrice = fabric.purchasePrice || 0
+          const length = fabric.length || 0
+          const calculatedTotal = fabric.totalPrice || (length * purchasePrice)
+
+          return {
+            id: fabric.fabricId || 'N/A',
+            fabricType: fabric.fabricType,
+            color: fabric.color,
+            quantity: fabric.quantity,
+            status: fabric.status,
+            length: fabric.length,
+            purchasePrice: purchasePrice,
+            totalPrice: calculatedTotal,
+            notes: fabric.notes || '',
+            dateRegistered: fabric.dateReceived || fabric.createdAt || new Date().toISOString()
+          }
+        })
         setInventoryItems(inventoryItems)
       }
     } catch (error) {
@@ -187,7 +198,12 @@ export default function Inventory() {
       const fabricId = await generateFabricId()
 
       const fabricData = {
-        ...formData,
+        fabricType: formData.fabricType,
+        color: formData.color,
+        length: parseFloat(formData.length),
+        purchasePrice: parseFloat(formData.purchasePrice) || 0,
+        totalPrice: parseFloat(formData.totalPrice) || 0,
+        notes: formData.notes,
         fabricId: fabricId
       }
 
@@ -211,6 +227,7 @@ export default function Inventory() {
           color: '',
           length: '',
           purchasePrice: '',
+          totalPrice: '0',
           notes: ''
         })
 
@@ -234,7 +251,17 @@ export default function Inventory() {
     const { name, value } = e.target
     const newFormData = { ...formData, [name]: value }
 
+    // Auto-calculate total price when length or purchasePrice changes
+    if (name === 'length' || name === 'purchasePrice') {
+      const length = name === 'length' ? parseFloat(value) : parseFloat(newFormData.length)
+      const price = name === 'purchasePrice' ? parseFloat(value) : parseFloat(newFormData.purchasePrice)
 
+      if (!isNaN(length) && !isNaN(price)) {
+        newFormData.totalPrice = (length * price).toFixed(2)
+      } else {
+        newFormData.totalPrice = '0'
+      }
+    }
 
     setFormData(newFormData)
   }
@@ -282,6 +309,7 @@ export default function Inventory() {
                 <th style={{ textAlign: 'center' }}>Color</th>
                 <th style={{ textAlign: 'center' }}>Quantity</th>
                 <th style={{ textAlign: 'center' }}>Price/m</th>
+                <th style={{ textAlign: 'center' }}>Total Price</th>
                 <th style={{ textAlign: 'center' }}>Date Registered</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -294,8 +322,9 @@ export default function Inventory() {
                     <td style={{ fontWeight: '500', textAlign: 'center' }}>{item.id}</td>
                     <td style={{ textAlign: 'center' }}>{item.fabricType}</td>
                     <td style={{ textAlign: 'center' }}>{item.color}</td>
-                    <td style={{ textAlign: 'center' }}>{item.quantity} sq.m</td>
+                    <td style={{ textAlign: 'center' }}>{item.quantity} m</td>
                     <td style={{ textAlign: 'center' }}>₹{item.purchasePrice > 0 ? item.purchasePrice.toFixed(2) : 'N/A'}</td>
+                    <td style={{ textAlign: 'center', fontWeight: '600', color: '#059669' }}>₹{item.totalPrice > 0 ? item.totalPrice.toFixed(2) : '0.00'}</td>
                     <td style={{ textAlign: 'center' }}>{formatDate(item.dateRegistered)}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`badge ${
@@ -315,7 +344,7 @@ export default function Inventory() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     {isLoading ? 'Loading inventory...' : 'No inventory items found'}
                   </td>
                 </tr>
@@ -549,6 +578,23 @@ export default function Inventory() {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label htmlFor="modal-totalPrice">Total Price (₹)</label>
+                  <input
+                    type="text"
+                    id="modal-totalPrice"
+                    name="totalPrice"
+                    value={formData.totalPrice}
+                    readOnly
+                    style={{
+                      backgroundColor: '#f3f4f6',
+                      cursor: 'not-allowed',
+                      fontWeight: 'bold',
+                      color: '#059669'
+                    }}
+                  />
+                </div>
+
               </div>
 
               <div className="form-group">
@@ -578,6 +624,7 @@ export default function Inventory() {
                       color: '',
                       length: '',
                       purchasePrice: '',
+                      totalPrice: '0',
                       notes: ''
                     })
                   }}

@@ -49,19 +49,26 @@ async function fixProductionIndexes() {
     }
     
     // Create the correct sparse unique index for fabricId
-    try {
-      await collection.createIndex({ fabricId: 1 }, { 
-        unique: true, 
-        sparse: true,
-        name: 'fabricId_1_sparse'
-      })
-      logger.info('✅ Created sparse unique index on fabricId')
-    } catch (error: any) {
-      if (error.code === 85) { // Index already exists
-        logger.info('ℹ️  Sparse fabricId index already exists')
-      } else {
-        logger.warn('⚠️  Error creating sparse index:', error.message)
+    const updatedIndexes = await collection.indexes()
+    const sparseIndexExists = updatedIndexes.find(idx => idx.name === 'fabricId_1_sparse')
+
+    if (!sparseIndexExists) {
+      try {
+        await collection.createIndex({ fabricId: 1 }, {
+          unique: true,
+          sparse: true,
+          name: 'fabricId_1_sparse'
+        })
+        logger.info('✅ Created sparse unique index on fabricId')
+      } catch (error: any) {
+        if (error.code === 85 || error.code === 86) { // Index already exists
+          logger.info('ℹ️  Sparse fabricId index already exists')
+        } else {
+          logger.warn('⚠️  Error creating sparse index:', error.message)
+        }
       }
+    } else {
+      logger.info('ℹ️  Sparse fabricId index already exists, skipping creation')
     }
     
     // Verify final indexes

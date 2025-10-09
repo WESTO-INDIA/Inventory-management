@@ -16,7 +16,7 @@ interface CuttingRecord {
   fabricType: string
   fabricColor: string
   sizeBreakdown?: SizeBreakdown[]
-  tailorItemPerPiece?: number
+  cuttingPricePerPiece?: number
 }
 
 interface ManufacturingRecord {
@@ -31,6 +31,7 @@ interface ManufacturingRecord {
   tailorName: string
   pricePerPiece: number
   totalAmount: number
+  status?: string
   createdAt: string
 }
 
@@ -213,7 +214,7 @@ export default function Manufacturing() {
       })
 
       if (response.ok) {
-        alert(`✅ Manufacturing order ${manufacturingId} assigned to ${formData.tailorName} successfully!`)
+        alert(`✅ Order ${manufacturingId} assigned to ${formData.tailorName} successfully!`)
 
         // Reset form
         setFormData({
@@ -232,11 +233,11 @@ export default function Manufacturing() {
         fetchManufacturingRecords()
       } else {
         const errorText = await response.text()
-        alert('❌ Error creating manufacturing order: ' + errorText)
+        alert('❌ Error assigning to tailor: ' + errorText)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('❌ Error creating manufacturing order. Please try again.')
+      alert('❌ Error assigning to tailor. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -251,8 +252,8 @@ export default function Manufacturing() {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Manufacturing</h1>
-        <p>Assign cutting items to tailors for manufacturing</p>
+        <h1>Assign to Tailor</h1>
+        <p>Assign cutting items to tailors for production</p>
       </div>
 
       {/* Assign to Tailor Form */}
@@ -428,14 +429,14 @@ export default function Manufacturing() {
         </form>
       </div>
 
-      {/* Manufacturing Assignments Table */}
+      {/* Tailor Assignments Table */}
       <div className="content-card">
-        <h2 style={{ marginBottom: '20px', color: '#374151' }}>Manufacturing Assignments</h2>
+        <h2 style={{ marginBottom: '20px', color: '#374151' }}>Tailor Assignments</h2>
         <div className="table-container">
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'center' }}>Manufacturing ID</th>
+                <th style={{ textAlign: 'center' }}>Assignment ID</th>
                 <th style={{ textAlign: 'center' }}>Fabric Type</th>
                 <th style={{ textAlign: 'center' }}>Fabric Color</th>
                 <th style={{ textAlign: 'center' }}>Product</th>
@@ -451,7 +452,7 @@ export default function Manufacturing() {
               {isLoadingRecords ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                    Loading manufacturing assignments...
+                    Loading tailor assignments...
                   </td>
                 </tr>
               ) : manufacturingRecords.length > 0 ? (
@@ -474,7 +475,7 @@ export default function Manufacturing() {
               ) : (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                    No manufacturing assignments found
+                    No tailor assignments found
                   </td>
                 </tr>
               )}

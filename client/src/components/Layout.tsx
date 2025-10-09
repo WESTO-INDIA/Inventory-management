@@ -29,7 +29,7 @@ export default function Layout() {
   const commonMenuItems = [
     { path: '/inventory', name: 'Fabric Inventory', icon: CubeIcon },
     { path: '/cutting-inventory', name: 'Cutting Inventory', icon: ChartBarIcon },
-    { path: '/manufacturing', name: 'Manufacturing', icon: ChartBarIcon },
+    { path: '/manufacturing', name: 'Assign to Tailor', icon: ChartBarIcon },
     { path: '/manufacturing-inventory', name: 'Manufacturing Inventory', icon: ChartBarIcon },
     { path: '/generate-qr', name: 'Garment Inventory', icon: QrCodeIcon },
     { path: '/qr-scanner', name: 'QR Scanner', icon: QrCodeIcon },
@@ -38,7 +38,7 @@ export default function Layout() {
 
   // Admin-only menu items
   const adminOnlyItems = [
-    { path: '/admin-dashboard', name: 'Admin Dashboard', icon: HomeIcon },
+    { path: '/admin-dashboard', name: 'Stock Room', icon: HomeIcon },
     { path: '/employees', name: 'Employees', icon: UsersIcon },
   ]
 

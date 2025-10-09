@@ -152,26 +152,16 @@ router.patch('/:id', async (req, res) => {
 // DELETE QR product
 router.delete('/:id', async (req, res) => {
   try {
-
     const qrProduct = await QRProduct.findById(req.params.id)
     if (!qrProduct) {
       return res.status(404).json({ message: 'QR product not found' })
     }
 
-
-    // If it's a manufacturing ID that's not manual, mark it as QR not generated
-    if (qrProduct.manufacturingId && !qrProduct.manufacturingId.startsWith('MFG') && qrProduct.cuttingId !== 'MANUAL') {
-      try {
-        await ManufacturingOrder.findOneAndUpdate(
-          { manufacturingId: qrProduct.manufacturingId },
-          { $set: { qrGenerated: false } }
-        )
-      } catch (err) {
-      }
-    }
-
-    // Delete the QR product
+    // Delete the QR product from qr-products collection
     await QRProduct.findByIdAndDelete(req.params.id)
+
+    // Do NOT update manufacturing order status here
+    // The frontend will handle updating the manufacturing order status to "QR Deleted"
 
     res.json({ message: 'QR product deleted successfully' })
   } catch (error: any) {
