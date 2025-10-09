@@ -10,6 +10,7 @@ import path from 'path'
 // Removed unused import: authMiddleware
 import { logger } from './utils/logger'
 import { setupMongoIndexes } from './utils/dbOptimization'
+import { fixProductionIndexes } from './scripts/fixProductionIndexes'
 import { errorHandler, notFoundHandler } from './utils/errorHandler'
 import { apiRateLimiter } from './middleware/rateLimiter'
 import { sanitizeRequest } from './middleware/sanitizer'
@@ -60,6 +61,15 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventory
 
 mongoose.connection.on('connected', async () => {
   logger.info('MongoDB connected')
+  
+  // Fix production indexes first (handles problematic productld index)
+  try {
+    await fixProductionIndexes()
+  } catch (error) {
+    logger.error('Failed to fix production indexes:', error)
+  }
+  
+  // Then setup regular indexes
   await setupMongoIndexes()
 })
 

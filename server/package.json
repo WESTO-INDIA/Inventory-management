@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "migrate:employee-ids": "tsx src/scripts/migrateEmployeeIds.ts",
     "migrate:add-dob": "tsx src/scripts/addDobToEmployees.ts",
-    "migrate:fix-ids": "tsx src/scripts/fixAllEmployeeIds.ts"
+    "migrate:fix-ids": "tsx src/scripts/fixAllEmployeeIds.ts",
+    "fix:production-indexes": "tsx src/scripts/fixProductionIndexes.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
