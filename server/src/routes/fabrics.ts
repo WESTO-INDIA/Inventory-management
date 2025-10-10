@@ -164,8 +164,18 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Fabric not found' })
     }
 
+    const fabricId = fabric.fabricId
+
+    // Delete the fabric
     await Fabric.findByIdAndDelete(req.params.id)
-    res.json({ message: 'Fabric deleted successfully' })
+
+    // Also delete related transactions for this fabric
+    if (fabricId) {
+      const Transaction = require('../models/Transaction').Transaction
+      await Transaction.deleteMany({ itemId: fabricId })
+    }
+
+    res.json({ message: 'Fabric and related transactions deleted successfully' })
   } catch (error: any) {
     res.status(500).json({ message: 'Server error' })
   }

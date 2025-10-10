@@ -215,20 +215,45 @@ export default function QRInventory() {
 
     try {
       // Generate MAN0001 style ID for manual products
-      const response = await fetch(`${API_URL}/api/manufacturing-orders`)
       let manualId = 'MAN0001'
 
-      if (response.ok) {
-        const records = await response.json()
-        const manRecords = records
-          .filter((r: any) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
-          .map((r: any) => {
-            const numPart = r.manufacturingId.replace('MAN', '')
-            return parseInt(numPart) || 0
-          })
-        const maxNum = manRecords.length > 0 ? Math.max(...manRecords) : 0
+      try {
+        // Check both manufacturing-orders and qr-products for existing MAN IDs
+        const [mfgResponse, qrResponse] = await Promise.all([
+          fetch(`${API_URL}/api/manufacturing-orders`),
+          fetch(`${API_URL}/api/qr-products`)
+        ])
+
+        const manNumbers: number[] = []
+
+        if (mfgResponse.ok) {
+          const mfgRecords = await mfgResponse.json()
+          mfgRecords
+            .filter((r: any) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
+            .forEach((r: any) => {
+              const numPart = r.manufacturingId.replace('MAN', '')
+              const num = parseInt(numPart)
+              if (!isNaN(num)) manNumbers.push(num)
+            })
+        }
+
+        if (qrResponse.ok) {
+          const qrRecords = await qrResponse.json()
+          qrRecords
+            .filter((r: any) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
+            .forEach((r: any) => {
+              const numPart = r.manufacturingId.replace('MAN', '')
+              const num = parseInt(numPart)
+              if (!isNaN(num)) manNumbers.push(num)
+            })
+        }
+
+        const maxNum = manNumbers.length > 0 ? Math.max(...manNumbers) : 0
         const nextNum = maxNum + 1
-        manualId = `MAN${nextNum.toString().padStart(4, '0')}`
+        // Use at least 4 digits, but allow more if needed (supports beyond MAN9999)
+        manualId = `MAN${nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0')}`
+      } catch (error) {
+        console.error('Error generating manual ID:', error)
       }
 
       const newQRProduct = {

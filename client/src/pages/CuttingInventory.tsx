@@ -84,8 +84,8 @@ export default function CuttingInventory() {
         const maxNum = cutRecords.length > 0 ? Math.max(...cutRecords) : 0
         const nextNum = maxNum + 1
 
-        // Format as CUT0001, CUT0002, etc.
-        return `CUT${nextNum.toString().padStart(4, '0')}`
+        // Format as CUT0001, CUT0002, etc. (supports beyond CUT9999)
+        return `CUT${nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0')}`
       }
 
       // If fetch fails, start from CUT0001

@@ -157,13 +157,21 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'QR product not found' })
     }
 
+    const productId = qrProduct.productId || qrProduct.manufacturingId
+
     // Delete the QR product from qr-products collection
     await QRProduct.findByIdAndDelete(req.params.id)
+
+    // Delete related transactions for this QR product
+    if (productId) {
+      const Transaction = require('../models/Transaction').Transaction
+      await Transaction.deleteMany({ itemId: productId })
+    }
 
     // Do NOT update manufacturing order status here
     // The frontend will handle updating the manufacturing order status to "QR Deleted"
 
-    res.json({ message: 'QR product deleted successfully' })
+    res.json({ message: 'QR product and related transactions deleted successfully' })
   } catch (error: any) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }

@@ -55,7 +55,8 @@ export default function Inventory() {
           })
         const maxNum = fabRecords.length > 0 ? Math.max(...fabRecords) : 0
         const nextNum = maxNum + 1
-        return `FAB${nextNum.toString().padStart(4, '0')}`
+        // Use at least 4 digits, but allow more if needed (supports beyond FAB9999)
+        return `FAB${nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0')}`
       }
       return 'FAB0001'
     } catch (error) {

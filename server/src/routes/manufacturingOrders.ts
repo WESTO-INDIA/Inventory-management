@@ -70,7 +70,9 @@ router.post('/', async (req, res) => {
           return parseInt(numPart) || 0
         })
       const maxNum = mfgIds.length > 0 ? Math.max(...mfgIds) : 0
-      finalManufacturingId = `MFG${(maxNum + 1).toString().padStart(4, '0')}`
+      const nextNum = maxNum + 1
+      // Use at least 4 digits, but allow more if needed (supports beyond MFG9999)
+      finalManufacturingId = `MFG${nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0')}`
     }
 
     const manufacturingOrder = new ManufacturingOrder({
@@ -132,6 +134,12 @@ router.put('/:id', async (req, res) => {
     if (totalAmount !== undefined) manufacturingOrder.totalAmount = parseFloat(totalAmount)
     if (status) {
       manufacturingOrder.status = status
+
+      // If status is changed to "QR Deleted", delete the associated QR product from QR inventory
+      if (status === 'QR Deleted') {
+        const QRProduct = require('../models/QRProduct').QRProduct
+        await QRProduct.deleteMany({ manufacturingId: manufacturingOrder.manufacturingId })
+      }
     }
 
     await manufacturingOrder.save()
@@ -153,14 +161,20 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Manufacturing order not found' })
     }
 
-    // Also delete any associated QR products
+    const manufacturingId = manufacturingOrder.manufacturingId
+
+    // Delete any associated QR products
     const QRProduct = require('../models/QRProduct').QRProduct
-    await QRProduct.deleteMany({ manufacturingId: manufacturingOrder.manufacturingId })
+    await QRProduct.deleteMany({ manufacturingId: manufacturingId })
+
+    // Delete related transactions
+    const Transaction = require('../models/Transaction').Transaction
+    await Transaction.deleteMany({ itemId: manufacturingId })
 
     // Delete the manufacturing order
     await ManufacturingOrder.findByIdAndDelete(req.params.id)
 
-    res.json({ message: 'Manufacturing order and associated QR codes deleted successfully' })
+    res.json({ message: 'Manufacturing order, QR codes, and transactions deleted successfully' })
   } catch (error: any) {
     res.status(500).json({ message: 'Server error: ' + error.message })
   }

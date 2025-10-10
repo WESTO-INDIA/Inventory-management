@@ -90,8 +90,18 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Cutting record not found' })
     }
 
+    const cuttingId = cuttingRecord.id
+
+    // Delete the cutting record
     await CuttingRecord.findByIdAndDelete(req.params.id)
-    res.json({ message: 'Cutting record deleted successfully' })
+
+    // Also delete related transactions for this cutting record
+    if (cuttingId) {
+      const Transaction = require('../models/Transaction').Transaction
+      await Transaction.deleteMany({ itemId: cuttingId })
+    }
+
+    res.json({ message: 'Cutting record and related transactions deleted successfully' })
   } catch (error: any) {
     res.status(500).json({ message: 'Server error' })
   }

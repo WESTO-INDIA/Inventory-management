@@ -96,19 +96,20 @@ export default function Manufacturing() {
       if (response.ok) {
         const records = await response.json()
         const mfgRecords = records
-          .filter((r: ManufacturingRecord) => r.manufacturingId && r.manufacturingId.startsWith('MAN'))
+          .filter((r: ManufacturingRecord) => r.manufacturingId && r.manufacturingId.startsWith('MFG'))
           .map((r: ManufacturingRecord) => {
-            const numPart = r.manufacturingId.replace('MAN', '')
+            const numPart = r.manufacturingId.replace('MFG', '')
             return parseInt(numPart) || 0
           })
         const maxNum = mfgRecords.length > 0 ? Math.max(...mfgRecords) : 0
         const nextNum = maxNum + 1
-        return `MAN${nextNum.toString().padStart(4, '0')}`
+        // Use at least 4 digits, but allow more if needed (supports beyond MFG9999)
+        return `MFG${nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0')}`
       }
-      return 'MAN0001'
+      return 'MFG0001'
     } catch (error) {
       console.error('Error generating manufacturing ID:', error)
-      return 'MAN0001'
+      return 'MFG0001'
     }
   }
 
