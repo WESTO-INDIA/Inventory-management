@@ -344,7 +344,7 @@ export default function StockRoom() {
             if (!productSizeMap.has(item.productName)) {
               productSizeMap.set(item.productName, {})
             }
-            const sizeData = productSizeMap.get(item.productName)
+            const sizeData = productSizeMap.get(item.productName) as { [key: string]: number }
             if (!sizeData[item.size]) {
               sizeData[item.size] = 0
             }
@@ -370,8 +370,8 @@ export default function StockRoom() {
           // Calculate max total for scaling
           let maxTotal = 0
           products.forEach(product => {
-            const sizeData = productSizeMap.get(product)
-            const total = Object.values(sizeData || {}).reduce((sum: number, qty: any) => sum + (Number(qty) || 0), 0)
+            const sizeData = productSizeMap.get(product) as { [key: string]: number } | undefined
+            const total = Object.values(sizeData || {}).reduce((sum: number, qty) => sum + (Number(qty) || 0), 0)
             if (total > maxTotal) maxTotal = total
           })
 
@@ -472,8 +472,8 @@ export default function StockRoom() {
                       right: '0'
                     }}>
                       {products.map(product => {
-                        const sizeData = productSizeMap.get(product)
-                        const totalQty = Object.values(sizeData).reduce((sum: number, qty: any) => sum + qty, 0)
+                        const sizeData = productSizeMap.get(product) as { [key: string]: number } | undefined
+                        const totalQty = Object.values(sizeData || {}).reduce((sum: number, qty) => sum + (Number(qty) || 0), 0)
 
                         // Get color and fabric type for this product from productDetailsMap
                         const productDetails = productDetailsMap.get(product) || { color: 'N/A', fabricType: 'N/A' }
@@ -498,7 +498,7 @@ export default function StockRoom() {
                               minHeight: '1px'
                             }}>
                               {allSizes.map((size, idx) => {
-                                const qty = sizeData[size] || 0
+                                const qty = (sizeData && sizeData[size]) || 0
                                 if (qty === 0) return null
 
                                 const heightPx = maxTotal > 0 ? (qty / maxTotal) * (chartHeight - 10) : 0
@@ -605,8 +605,8 @@ export default function StockRoom() {
                       paddingTop: '5px'
                     }}>
                       {products.map(product => {
-                        const sizeData = productSizeMap.get(product)
-                        const totalQty = Object.values(sizeData).reduce((sum: number, qty: any) => sum + qty, 0)
+                        const sizeData = productSizeMap.get(product) as { [key: string]: number } | undefined
+                        const totalQty = Object.values(sizeData || {}).reduce((sum: number, qty) => sum + (Number(qty) || 0), 0)
 
                         return (
                           <div key={product} className="group relative text-center font-bold text-gray-800" style={{
@@ -634,7 +634,7 @@ export default function StockRoom() {
                             }}>
                               <div className="font-bold">{product}</div>
                               <div>Total Qty: {totalQty} pcs</div>
-                              {Object.entries(sizeData).map(([size, qty]: [string, any]) => {
+                              {Object.entries(sizeData || {}).map(([size, qty]: [string, any]) => {
                                 const qtyNum = Number(qty) || 0
                                 return qtyNum > 0 ? <div key={size}>{size}: {qty} pcs</div> : null
                               })}
