@@ -497,45 +497,71 @@ export default function StockRoom() {
                               overflow: 'visible',
                               minHeight: '1px'
                             }}>
-                              {allSizes.map(size => {
+                              {allSizes.map((size, idx) => {
                                 const qty = sizeData[size] || 0
                                 if (qty === 0) return null
 
                                 const heightPx = maxTotal > 0 ? (qty / maxTotal) * (chartHeight - 10) : 0
+                                // Ensure minimum height for hover area (at least 10px)
+                                const minHeight = Math.max(heightPx, 10)
 
                                 return (
                                   <div
                                     key={size}
-                                    className="group/bar relative"
+                                    className="bar-segment"
                                     style={{
-                                      height: `${heightPx}px`,
+                                      height: `${minHeight}px`,
                                       backgroundColor: sizeColors[size],
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
                                       cursor: 'pointer',
                                       transition: 'all 0.3s ease',
-                                      position: 'relative'
+                                      position: 'relative',
+                                      minHeight: '10px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      const tooltip = e.currentTarget.querySelector('.bar-tooltip') as HTMLElement
+                                      if (tooltip) tooltip.style.display = 'block'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      const tooltip = e.currentTarget.querySelector('.bar-tooltip') as HTMLElement
+                                      if (tooltip) tooltip.style.display = 'none'
                                     }}
                                   >
                                     {/* Quantity label inside bar if space available */}
                                     {heightPx > 25 && (
-                                      <span className="text-white font-bold text-sm pointer-events-none">
+                                      <span style={{
+                                        color: 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.875rem',
+                                        pointerEvents: 'none'
+                                      }}>
                                         {qty}
                                       </span>
                                     )}
 
                                     {/* Tooltip */}
-                                    <div className="absolute hidden group-hover/bar:block bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-xl" style={{
+                                    <div className="bar-tooltip" style={{
+                                      position: 'absolute',
                                       bottom: '100%',
                                       left: '50%',
                                       transform: 'translateX(-50%)',
                                       marginBottom: '8px',
-                                      zIndex: 1000,
+                                      zIndex: 10000,
                                       minWidth: '150px',
-                                      textAlign: 'left'
+                                      textAlign: 'left',
+                                      whiteSpace: 'nowrap',
+                                      pointerEvents: 'none',
+                                      display: 'none',
+                                      backgroundColor: '#1f2937',
+                                      color: 'white',
+                                      fontSize: '0.75rem',
+                                      borderRadius: '0.5rem',
+                                      padding: '0.5rem 0.75rem',
+                                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
                                     }}>
-                                      <div className="font-bold text-sm mb-1">{product}</div>
+                                      <div style={{ fontWeight: 'bold', fontSize: '0.875rem', marginBottom: '0.25rem' }}>{product}</div>
                                       <div>Size: {size}</div>
                                       <div>Color: {productDetails.color}</div>
                                       <div>Fabric Type: {productDetails.fabricType}</div>
