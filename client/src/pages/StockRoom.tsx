@@ -371,7 +371,7 @@ export default function StockRoom() {
           let maxTotal = 0
           products.forEach(product => {
             const sizeData = productSizeMap.get(product)
-            const total = Object.values(sizeData).reduce((sum: number, qty: any) => sum + qty, 0)
+            const total = Object.values(sizeData || {}).reduce((sum: number, qty: any) => sum + (Number(qty) || 0), 0)
             if (total > maxTotal) maxTotal = total
           })
 
@@ -634,9 +634,10 @@ export default function StockRoom() {
                             }}>
                               <div className="font-bold">{product}</div>
                               <div>Total Qty: {totalQty} pcs</div>
-                              {Object.entries(sizeData).map(([size, qty]: [string, any]) => (
-                                qty > 0 && <div key={size}>{size}: {qty} pcs</div>
-                              ))}
+                              {Object.entries(sizeData).map(([size, qty]: [string, any]) => {
+                                const qtyNum = Number(qty) || 0
+                                return qtyNum > 0 ? <div key={size}>{size}: {qty} pcs</div> : null
+                              })}
                             </div>
                           </div>
                         )
