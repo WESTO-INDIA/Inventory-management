@@ -522,11 +522,26 @@ export default function StockRoom() {
                                     }}
                                     onMouseEnter={(e) => {
                                       const tooltip = e.currentTarget.querySelector('.bar-tooltip') as HTMLElement
-                                      if (tooltip) tooltip.style.display = 'block'
+                                      if (tooltip) {
+                                        tooltip.style.display = 'block'
+                                        // Bring the parent bar and tooltip to the front
+                                        const parent = e.currentTarget as HTMLElement
+                                        parent.style.zIndex = '9999'
+
+                                        // Position tooltip above the bar
+                                        const rect = parent.getBoundingClientRect()
+                                        tooltip.style.top = `${rect.top - 10}px`
+                                        tooltip.style.left = `${rect.left + rect.width / 2}px`
+                                      }
                                     }}
                                     onMouseLeave={(e) => {
                                       const tooltip = e.currentTarget.querySelector('.bar-tooltip') as HTMLElement
-                                      if (tooltip) tooltip.style.display = 'none'
+                                      if (tooltip) {
+                                        tooltip.style.display = 'none'
+                                        // Reset z-index
+                                        const parent = e.currentTarget as HTMLElement
+                                        parent.style.zIndex = '1'
+                                      }
                                     }}
                                   >
                                     {/* Quantity label inside bar if space available */}
@@ -543,12 +558,11 @@ export default function StockRoom() {
 
                                     {/* Tooltip */}
                                     <div className="bar-tooltip" style={{
-                                      position: 'absolute',
-                                      bottom: '100%',
+                                      position: 'fixed',
+                                      bottom: 'auto',
                                       left: '50%',
-                                      transform: 'translateX(-50%)',
-                                      marginBottom: '8px',
-                                      zIndex: 10000,
+                                      transform: 'translateX(-50%) translateY(-110%)',
+                                      zIndex: 99999,
                                       minWidth: '150px',
                                       textAlign: 'left',
                                       whiteSpace: 'nowrap',
@@ -559,7 +573,8 @@ export default function StockRoom() {
                                       fontSize: '0.75rem',
                                       borderRadius: '0.5rem',
                                       padding: '0.5rem 0.75rem',
-                                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+                                      border: '1px solid rgba(255, 255, 255, 0.1)'
                                     }}>
                                       <div style={{ fontWeight: 'bold', fontSize: '0.875rem', marginBottom: '0.25rem' }}>{product}</div>
                                       <div>Size: {size}</div>
