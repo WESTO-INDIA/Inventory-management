@@ -64,7 +64,7 @@ export default function ManufacturingInventory() {
   }
 
   const handleDelete = async (record: ManufacturingRecord) => {
-    if (!window.confirm(`Permanently delete ${record.manufacturingId}? This will also delete any associated QR codes.`)) {
+    if (!window.confirm(`Permanently delete this manufacturing record?\n\nManufacturing ID: ${record.manufacturingId}\nTailor: ${record.tailorName}\nQuantity: ${record.quantity}\n\nNote: QR codes and transactions will only be deleted if this is the last record with this manufacturing ID.`)) {
       return
     }
 
@@ -74,7 +74,8 @@ export default function ManufacturingInventory() {
       })
 
       if (deleteResponse.ok) {
-        alert('✅ Manufacturing record permanently deleted!')
+        const result = await deleteResponse.json()
+        alert(`✅ ${result.message}`)
         fetchManufacturingRecords()
       } else {
         alert('❌ Error deleting record. Please try again.')

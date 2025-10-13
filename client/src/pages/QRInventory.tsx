@@ -63,21 +63,37 @@ export default function QRInventory() {
           record.status === 'Completed'
         )
 
-        // Convert to QR product format
-        const qrProductsList: QRProduct[] = qrEligibleRecords.map((record: ManufacturingRecord) => ({
-          _id: record._id,
-          manufacturingId: record.manufacturingId,
-          productName: record.productName,
-          fabricType: record.fabricType || 'N/A',
-          color: record.fabricColor,
-          size: record.size || 'N/A',
-          quantity: record.quantity || 0,
-          generatedDate: record.createdAt || new Date().toISOString(),
-          tailorName: record.tailorName,
-          cuttingId: record.cuttingId,
-          createdAt: record.createdAt,
-          isManual: false
-        }))
+        // Group by manufacturingId and aggregate quantities
+        const groupedByManufacturingId = new Map<string, QRProduct>()
+
+        qrEligibleRecords.forEach((record: ManufacturingRecord) => {
+          const mfgId = record.manufacturingId
+
+          if (groupedByManufacturingId.has(mfgId)) {
+            // Manufacturing ID already exists, add to quantity
+            const existing = groupedByManufacturingId.get(mfgId)!
+            existing.quantity += record.quantity || 0
+          } else {
+            // Create new entry
+            groupedByManufacturingId.set(mfgId, {
+              _id: record._id,
+              manufacturingId: record.manufacturingId,
+              productName: record.productName,
+              fabricType: record.fabricType || 'N/A',
+              color: record.fabricColor,
+              size: record.size || 'N/A',
+              quantity: record.quantity || 0,
+              generatedDate: record.createdAt || new Date().toISOString(),
+              tailorName: record.tailorName,
+              cuttingId: record.cuttingId,
+              createdAt: record.createdAt,
+              isManual: false
+            })
+          }
+        })
+
+        // Convert map to array
+        const qrProductsList: QRProduct[] = Array.from(groupedByManufacturingId.values())
 
         // Fetch manual QR products if any
         const manualResponse = await fetch(`${API_URL}/api/qr-products`)
@@ -342,27 +358,10 @@ export default function QRInventory() {
       }
 
       // AUTO-GENERATED PRODUCTS:
-      // Step 1: Delete from qr-products collection if it exists there
-      // Step 2: Update manufacturing order status to "QR Deleted"
+      // Update ALL manufacturing orders with same manufacturingId to "QR Deleted" status
+      // This will update all records (different tailors) with same manufacturing ID in one action
 
-      // First, check if there's a QR product entry for this manufacturing order
-      const qrProductsResponse = await fetch(`${API_URL}/api/qr-products`)
-      if (qrProductsResponse.ok) {
-        const allQRProducts = await qrProductsResponse.json()
-        const qrProductEntry = allQRProducts.find((qr: any) =>
-          qr.manufacturingId === product.manufacturingId
-        )
-
-        // If QR was generated and stored in qr-products, delete it first
-        if (qrProductEntry) {
-          await fetch(`${API_URL}/api/qr-products/${qrProductEntry._id}`, {
-            method: 'DELETE'
-          })
-        }
-      }
-
-      // Now update the manufacturing order status to "QR Deleted"
-      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/${product._id}`, {
+      const updateResponse = await fetch(`${API_URL}/api/manufacturing-orders/bulk-status/${product.manufacturingId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -378,7 +377,8 @@ export default function QRInventory() {
         return
       }
 
-      alert(`✅ QR deleted successfully!\n\nManufacturing ID: ${product.manufacturingId}\nStatus: QR Deleted\n\nCheck Manufacturing Inventory to verify.`)
+      const responseData = await updateResponse.json()
+      alert(`✅ QR deleted successfully!\n\nManufacturing ID: ${product.manufacturingId}\nUpdated ${responseData.updatedCount} record(s) to "QR Deleted" status\n\nAll tailors assigned to this item have been updated.`)
       await fetchQRProducts()
 
     } catch (error) {

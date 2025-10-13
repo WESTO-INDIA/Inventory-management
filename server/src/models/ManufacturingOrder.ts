@@ -20,8 +20,8 @@ const ManufacturingOrderSchema: Schema = new Schema({
   manufacturingId: {
     type: String,
     required: true,
-    unique: true,
-    trim: true
+    trim: true,
+    index: true // Keep index for performance, but not unique
   },
   cuttingId: {
     type: String,

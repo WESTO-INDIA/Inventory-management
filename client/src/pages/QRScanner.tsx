@@ -55,102 +55,31 @@ export default function QRScanner() {
 
   const fetchProductFromQRInventory = async (manufacturingId: string) => {
     try {
-      // Fetch from manufacturing orders first to get base quantity
-      const response = await fetch(`${API_URL}/api/manufacturing-orders`)
-      let baseQuantity = 0
-      let manufacturingRecord = null
+      // Fetch directly from Stock Room endpoint - this returns the EXACT same data as Stock Room displays
+      const response = await fetch(`${API_URL}/api/stock-room/item/${manufacturingId}`)
 
       if (response.ok) {
-        const records = await response.json()
-        const record = records.find((r: any) =>
-          r.manufacturingId === manufacturingId
-        )
+        const stockItem = await response.json()
 
-        if (record) {
-          manufacturingRecord = record
-          // Only use base quantity if status is Completed
-          if (record.status === 'Completed') {
-            baseQuantity = record.quantity || 0
-          }
-        }
-      }
-
-      // Fetch transactions to calculate stock changes
-      const transactionsResponse = await fetch(`${API_URL}/api/transactions`)
-      let transactionAdjustment = 0
-
-      if (transactionsResponse.ok) {
-        const allTransactions = await transactionsResponse.json()
-        const transactions = Array.isArray(allTransactions) ? allTransactions : (allTransactions.transactions || [])
-
-        // Calculate stock changes from transactions
-        const productTransactions = transactions.filter((t: any) =>
-          t.itemId === manufacturingId
-        )
-
-        // Only count STOCK_IN/STOCK_OUT transactions (not QR_GENERATED)
-        // to match Stock Room calculation
-        productTransactions.forEach((t: any) => {
-          if (t.action === 'STOCK_IN') {
-            transactionAdjustment += t.quantity
-          } else if (t.action === 'STOCK_OUT') {
-            transactionAdjustment -= t.quantity
-          }
-        })
-      }
-
-      // Calculate total current stock: base quantity + transaction adjustments
-      const currentStock = baseQuantity + transactionAdjustment
-
-      if (manufacturingRecord) {
         return {
-          _id: manufacturingRecord._id,
-          manufacturingId: manufacturingRecord.manufacturingId,
-          productName: manufacturingRecord.productName,
-          fabricType: manufacturingRecord.fabricType || 'N/A',
-          color: manufacturingRecord.fabricColor || 'N/A',
-          size: manufacturingRecord.size || 'N/A',
-          currentStock: currentStock,
-          tailorName: manufacturingRecord.tailorName || 'N/A',
-          pricePerPiece: manufacturingRecord.pricePerPiece || 0,
-          totalPrice: manufacturingRecord.totalPrice || 0,
+          _id: manufacturingId,
+          manufacturingId: stockItem.manufacturingId,
+          productName: stockItem.garment,
+          fabricType: stockItem.fabricType,
+          color: stockItem.color,
+          size: stockItem.size,
+          currentStock: stockItem.quantity, // This is the exact quantity shown in Stock Room
+          tailorName: stockItem.tailorName,
+          pricePerPiece: 0,
+          totalPrice: 0,
           companyName: 'Westo',
           companyLogo: '🏢'
         }
       }
 
-      // Also check QR products for manual entries
-      const qrResponse = await fetch(`${API_URL}/api/qr-products`)
-      if (qrResponse.ok) {
-        const qrProducts = await qrResponse.json()
-        const qrProduct = qrProducts.find((p: any) =>
-          p.manufacturingId === manufacturingId
-        )
-
-        if (qrProduct) {
-          // For manual products, use their quantity as base + transactions
-          const manualBaseQuantity = qrProduct.quantity || 0
-          const manualCurrentStock = manualBaseQuantity + transactionAdjustment
-
-          return {
-            _id: qrProduct._id,
-            manufacturingId: qrProduct.manufacturingId,
-            productName: qrProduct.productName,
-            fabricType: qrProduct.fabricType || 'N/A',
-            color: qrProduct.color || 'N/A',
-            size: qrProduct.size || 'N/A',
-            currentStock: manualCurrentStock,
-            tailorName: qrProduct.tailorName || 'N/A',
-            pricePerPiece: qrProduct.pricePerPiece || 0,
-            totalPrice: qrProduct.totalPrice || 0,
-            companyName: 'Westo-India',
-            companyLogo: '🏢'
-          }
-        }
-      }
-
       return null
     } catch (error) {
+      console.error('Error fetching from Stock Room:', error)
       return null
     }
   }
@@ -231,19 +160,25 @@ export default function QRScanner() {
         throw new Error('Failed to create transaction')
       }
 
-      setScannedProduct({
-        ...scannedProduct,
-        currentStock: newQuantity
-      })
+      // Fetch updated stock from Stock Room to ensure accuracy
+      const updatedProduct = await fetchProductFromQRInventory(scannedProduct.manufacturingId)
+
+      if (updatedProduct) {
+        setScannedProduct(updatedProduct)
+      } else {
+        // Fallback to calculated quantity if fetch fails
+        setScannedProduct({
+          ...scannedProduct,
+          currentStock: newQuantity
+        })
+      }
 
       showMessage('success', `Stock ${stockAction === 'in' ? 'added' : 'removed'} successfully!`)
 
-      // Reset after 2 seconds
-      setTimeout(() => {
-        setScannedProduct(null)
-        setQuantity(1)
-        setStockAction('in')
-      }, 2000)
+      // Close modal immediately
+      setScannedProduct(null)
+      setQuantity(1)
+      setStockAction('in')
 
     } catch (error) {
       showMessage('error', 'Failed to update stock')

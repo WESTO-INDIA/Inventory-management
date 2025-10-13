@@ -52,6 +52,16 @@ export default function CuttingInventory() {
     cuttingDate: new Date().toISOString().split('T')[0]
   })
 
+  // Helper function to sort sizes in proper order
+  const sortSizeBreakdown = (sizeBreakdown: SizeBreakdown[]) => {
+    const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+    return [...sizeBreakdown].sort((a, b) => {
+      const indexA = sizeOrder.indexOf(a.size)
+      const indexB = sizeOrder.indexOf(b.size)
+      return indexA - indexB
+    })
+  }
+
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
     try {
@@ -114,17 +124,33 @@ export default function CuttingInventory() {
   }
 
   const handleDelete = async (record: CuttingRecord) => {
-    if (window.confirm(`Are you sure you want to delete cutting record ${record.id}?`)) {
+    const confirmMessage = `⚠️ WARNING: This will delete cutting record ${record.id} and ALL related data:\n\n` +
+      `• All manufacturing orders linked to this cutting ID\n` +
+      `• All QR products generated from these manufacturing orders\n` +
+      `• All transactions for cutting and manufacturing\n\n` +
+      `This action cannot be undone. Are you sure?`
+
+    if (window.confirm(confirmMessage)) {
       try {
         const deleteResponse = await fetch(`${API_URL}/api/cutting-records/${record._id}`, {
           method: 'DELETE'
         })
-        
+
         if (deleteResponse.ok) {
-          alert('✅ Cutting record deleted successfully!')
+          const result = await deleteResponse.json()
+          const details = result.details
+
+          let successMessage = `✅ Cutting record deleted successfully!\n\n` +
+            `Cutting ID: ${details.cuttingId}\n` +
+            `Manufacturing Orders Deleted: ${details.deletedManufacturingOrders}\n` +
+            `QR Products Deleted: ${details.deletedQRProducts}\n` +
+            `Transactions Deleted: ${details.deletedTransactions}`
+
+          alert(successMessage)
           fetchCuttingRecords()
         } else {
-          alert('❌ Error deleting cutting record. Please try again.')
+          const errorData = await deleteResponse.json().catch(() => ({ message: 'Unknown error' }))
+          alert(`❌ Error deleting cutting record: ${errorData.message}`)
         }
       } catch (error) {
         alert('❌ Error deleting cutting record. Please try again.')
@@ -330,7 +356,7 @@ export default function CuttingInventory() {
                     <td style={{ textAlign: 'center' }}>
                       {record.sizeBreakdown && record.sizeBreakdown.length > 0 ? (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center' }}>
-                          {record.sizeBreakdown.map((sb, idx) => (
+                          {sortSizeBreakdown(record.sizeBreakdown).map((sb, idx) => (
                             <span key={idx} style={{
                               backgroundColor: '#e0f2fe',
                               color: '#0369a1',
@@ -549,7 +575,7 @@ export default function CuttingInventory() {
                 {sizeBreakdown.length > 0 && (
                   <div style={{ marginTop: '15px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      {sizeBreakdown.map((item) => (
+                      {sortSizeBreakdown(sizeBreakdown).map((item) => (
                         <div
                           key={item.size}
                           style={{

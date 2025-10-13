@@ -92,18 +92,59 @@ router.delete('/:id', async (req, res) => {
 
     const cuttingId = cuttingRecord.id
 
-    // Delete the cutting record
+    // Find all manufacturing orders linked to this cutting ID
+    const ManufacturingOrder = require('../models/ManufacturingOrder').ManufacturingOrder
+    const manufacturingOrders = await ManufacturingOrder.find({ cuttingId })
+
+    // Collect all unique manufacturing IDs from these orders
+    const manufacturingIds = [...new Set(manufacturingOrders.map((order: any) => order.manufacturingId))]
+
+    // Delete the cutting record first
     await CuttingRecord.findByIdAndDelete(req.params.id)
 
-    // Also delete related transactions for this cutting record
-    if (cuttingId) {
-      const Transaction = require('../models/Transaction').Transaction
-      await Transaction.deleteMany({ itemId: cuttingId })
+    // Delete all manufacturing orders linked to this cutting ID
+    let deletedManufacturingCount = 0
+    if (manufacturingOrders.length > 0) {
+      const deleteResult = await ManufacturingOrder.deleteMany({ cuttingId })
+      deletedManufacturingCount = deleteResult.deletedCount || 0
     }
 
-    res.json({ message: 'Cutting record and related transactions deleted successfully' })
+    // Delete all QR products for the manufacturing IDs
+    let deletedQRProductsCount = 0
+    if (manufacturingIds.length > 0) {
+      const QRProduct = require('../models/QRProduct').QRProduct
+      const qrDeleteResult = await QRProduct.deleteMany({
+        manufacturingId: { $in: manufacturingIds }
+      })
+      deletedQRProductsCount = qrDeleteResult.deletedCount || 0
+    }
+
+    // Delete all transactions related to:
+    // 1. The cutting record itself (itemId = cuttingId)
+    // 2. All manufacturing orders (itemId in manufacturingIds)
+    const Transaction = require('../models/Transaction').Transaction
+    let deletedTransactionsCount = 0
+
+    const transactionDeleteResult = await Transaction.deleteMany({
+      $or: [
+        { itemId: cuttingId }, // Transactions for cutting record
+        { itemId: { $in: manufacturingIds } } // Transactions for manufacturing orders
+      ]
+    })
+    deletedTransactionsCount = transactionDeleteResult.deletedCount || 0
+
+    res.json({
+      message: 'Cutting record and all related data deleted successfully',
+      details: {
+        cuttingId,
+        deletedManufacturingOrders: deletedManufacturingCount,
+        deletedQRProducts: deletedQRProductsCount,
+        deletedTransactions: deletedTransactionsCount
+      }
+    })
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error deleting cutting record:', error)
+    res.status(500).json({ message: 'Server error: ' + error.message })
   }
 })
 

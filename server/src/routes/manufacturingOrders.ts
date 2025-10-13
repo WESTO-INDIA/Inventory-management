@@ -153,6 +153,41 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// PUT update all manufacturing orders with same manufacturingId to "QR Deleted"
+router.put('/bulk-status/:manufacturingId', async (req, res) => {
+  try {
+    const { manufacturingId } = req.params
+    const { status } = req.body
+
+    // Find all manufacturing orders with this manufacturingId
+    const manufacturingOrders = await ManufacturingOrder.find({ manufacturingId })
+
+    if (!manufacturingOrders || manufacturingOrders.length === 0) {
+      return res.status(404).json({ message: 'No manufacturing orders found with this ID' })
+    }
+
+    // Update all records to the new status
+    const updateResult = await ManufacturingOrder.updateMany(
+      { manufacturingId },
+      { $set: { status } }
+    )
+
+    // If status is "QR Deleted", also delete the associated QR products
+    if (status === 'QR Deleted') {
+      const QRProduct = require('../models/QRProduct').QRProduct
+      await QRProduct.deleteMany({ manufacturingId })
+    }
+
+    res.json({
+      message: `Successfully updated ${updateResult.modifiedCount} manufacturing order(s) to status: ${status}`,
+      updatedCount: updateResult.modifiedCount,
+      manufacturingId
+    })
+  } catch (error: any) {
+    res.status(500).json({ message: 'Server error: ' + error.message })
+  }
+})
+
 // DELETE manufacturing order
 router.delete('/:id', async (req, res) => {
   try {
@@ -163,18 +198,31 @@ router.delete('/:id', async (req, res) => {
 
     const manufacturingId = manufacturingOrder.manufacturingId
 
-    // Delete any associated QR products
-    const QRProduct = require('../models/QRProduct').QRProduct
-    await QRProduct.deleteMany({ manufacturingId: manufacturingId })
+    // Check if there are OTHER records with the same manufacturingId
+    const remainingRecords = await ManufacturingOrder.find({
+      manufacturingId: manufacturingId,
+      _id: { $ne: req.params.id } // Exclude the one being deleted
+    })
 
-    // Delete related transactions
-    const Transaction = require('../models/Transaction').Transaction
-    await Transaction.deleteMany({ itemId: manufacturingId })
-
-    // Delete the manufacturing order
+    // Delete the manufacturing order first
     await ManufacturingOrder.findByIdAndDelete(req.params.id)
 
-    res.json({ message: 'Manufacturing order, QR codes, and transactions deleted successfully' })
+    // Only delete QR products and transactions if NO other records exist with this manufacturingId
+    if (remainingRecords.length === 0) {
+      // This is the LAST record with this manufacturingId
+      // Safe to delete QR products and transactions
+      const QRProduct = require('../models/QRProduct').QRProduct
+      await QRProduct.deleteMany({ manufacturingId: manufacturingId })
+
+      const Transaction = require('../models/Transaction').Transaction
+      await Transaction.deleteMany({ itemId: manufacturingId })
+
+      res.json({ message: 'Manufacturing order, QR codes, and transactions deleted successfully (last record)' })
+    } else {
+      // Other records still exist with this manufacturingId
+      // Keep QR products and transactions
+      res.json({ message: 'Manufacturing order deleted successfully (other records with same ID remain)' })
+    }
   } catch (error: any) {
     res.status(500).json({ message: 'Server error: ' + error.message })
   }
