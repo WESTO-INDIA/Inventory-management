@@ -50,6 +50,15 @@ const app = express()
 const httpServer = createServer(app)
 const PORT = process.env.PORT || 4000
 
+// Log startup configuration
+logger.info('=== Server Configuration ===')
+logger.info(`Environment: ${process.env.NODE_ENV}`)
+logger.info(`Port: ${PORT}`)
+logger.info(`MongoDB URI: ${process.env.MONGODB_URI ? 'Configured' : 'Missing'}`)
+logger.info(`JWT Secret: ${process.env.JWT_SECRET ? 'Configured' : 'Missing'}`)
+logger.info(`Client URL: ${process.env.CLIENT_URL}`)
+logger.info('=============================')
+
 // MongoDB connection with optimization
 mongoose.set('strictQuery', false)
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventory', {
@@ -85,16 +94,20 @@ async function startServer() {
   }))
 
   // CORS configuration
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [process.env.CLIENT_URL, 'https://inventory-frontend.onrender.com'].filter(Boolean)
+    : true
+
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.CLIENT_URL
-      : true, // Allow all origins in development
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204
   }))
+
+  logger.info(`CORS origins: ${JSON.stringify(allowedOrigins)}`)
 
   // Compression middleware for performance
   app.use(compression())
@@ -119,11 +132,19 @@ async function startServer() {
 
   // Health check
   app.get('/health', (_req, res) => {
-    res.json({
-      status: 'healthy',
+    const mongoStatus = mongoose.connection.readyState
+    const isHealthy = mongoStatus === 1
+
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'healthy' : 'unhealthy',
       timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
       services: {
-        mongodb: mongoose.connection.readyState === 1
+        mongodb: {
+          status: mongoStatus === 1 ? 'connected' : 'disconnected',
+          readyState: mongoStatus
+        }
       }
     })
   })
@@ -145,8 +166,10 @@ async function startServer() {
   app.use(errorHandler)
 
   httpServer.listen(PORT, () => {
-    logger.info(`🚀 Server ready at http://localhost:${PORT}`)
-    logger.info(`📦 REST API available at http://localhost:${PORT}/api`)
+    logger.info(`🚀 Server ready on port ${PORT}`)
+    logger.info(`📦 REST API available at /api`)
+    logger.info(`❤️  Health check available at /health`)
+    logger.info(`🌍 Environment: ${process.env.NODE_ENV}`)
   })
 }
 

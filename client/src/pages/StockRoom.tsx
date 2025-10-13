@@ -286,78 +286,78 @@ export default function StockRoom() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 border-b-2 border-gray-300">
+                <th className="px-4 py-3 text-center font-bold text-black">Manufacturing ID</th>
                 <th className="px-4 py-3 text-center font-bold text-black">Garment</th>
                 <th className="px-4 py-3 text-center font-bold text-black">Color</th>
                 <th className="px-4 py-3 text-center font-bold text-black">Fabric Type</th>
-                <th className="px-4 py-3 text-center font-bold text-black">XXS</th>
-                <th className="px-4 py-3 text-center font-bold text-black">XS</th>
-                <th className="px-4 py-3 text-center font-bold text-black">S</th>
-                <th className="px-4 py-3 text-center font-bold text-black">M</th>
-                <th className="px-4 py-3 text-center font-bold text-black">L</th>
-                <th className="px-4 py-3 text-center font-bold text-black">XL</th>
-                <th className="px-4 py-3 text-center font-bold text-black">XXL</th>
-                <th className="px-4 py-3 text-center font-bold text-black">Total</th>
+                <th className="px-4 py-3 text-center font-bold text-black">Size</th>
+                <th className="px-4 py-3 text-center font-bold text-black">Quantity</th>
               </tr>
             </thead>
             <tbody>
               {(() => {
-                // Create a map to aggregate quantities by garment+color+fabricType combination
-                const aggregatedStock = new Map<string, {
+                // Create a map to track stock by manufacturing ID
+                const stockByManufacturingId = new Map<string, {
+                  manufacturingId: string
                   garment: string
                   color: string
                   fabricType: string
-                  sizes: { [key: string]: number }
+                  size: string
+                  quantity: number
                 }>()
 
-                // Collect data from garmentStocks
+                // Collect data from garmentStocks (base manufacturing orders)
+                // Multiple records might share the same manufacturingId (different tailors)
+                // We need to aggregate them by manufacturingId
                 Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
-                  const key = `${g.productName}|${g.color || 'N/A'}|${g.fabricType || 'N/A'}`
+                  const id = g.productId
 
-                  if (!aggregatedStock.has(key)) {
-                    aggregatedStock.set(key, {
+                  if (stockByManufacturingId.has(id)) {
+                    // If this manufacturing ID already exists, add to its quantity
+                    const existing = stockByManufacturingId.get(id)!
+                    existing.quantity += g.quantity || 0
+                  } else {
+                    // Create new entry
+                    stockByManufacturingId.set(id, {
+                      manufacturingId: id,
                       garment: g.productName,
                       color: g.color || 'N/A',
                       fabricType: g.fabricType || 'N/A',
-                      sizes: { XXS: 0, XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0 }
+                      size: g.size || 'N/A',
+                      quantity: g.quantity || 0
                     })
-                  }
-
-                  const entry = aggregatedStock.get(key)!
-                  const size = (g.size || '').toUpperCase()
-                  if (entry.sizes.hasOwnProperty(size)) {
-                    entry.sizes[size] += g.quantity || 0
                   }
                 })
 
                 // Apply transactions to adjust quantities
                 Array.isArray(transactions) && transactions.forEach((t: any) => {
                   if (t.itemType === 'MANUFACTURING' || t.itemType === 'QR_GENERATED') {
-                    const key = `${t.itemName}|${t.color || 'N/A'}|${t.fabricType || 'N/A'}`
+                    const id = t.itemId
 
-                    if (!aggregatedStock.has(key)) {
-                      aggregatedStock.set(key, {
+                    // If manufacturing ID doesn't exist, create it from transaction
+                    if (!stockByManufacturingId.has(id)) {
+                      stockByManufacturingId.set(id, {
+                        manufacturingId: id,
                         garment: t.itemName,
                         color: t.color || 'N/A',
                         fabricType: t.fabricType || 'N/A',
-                        sizes: { XXS: 0, XS: 0, S: 0, M: 0, L: 0, XL: 0, XXL: 0 }
+                        size: t.size || 'N/A',
+                        quantity: 0
                       })
                     }
 
-                    const entry = aggregatedStock.get(key)!
-                    const size = (t.size || '').toUpperCase()
-                    if (entry.sizes.hasOwnProperty(size)) {
-                      if (t.action === 'STOCK_IN') {
-                        entry.sizes[size] += t.quantity
-                      } else if (t.action === 'STOCK_OUT') {
-                        entry.sizes[size] -= t.quantity
-                      }
+                    const item = stockByManufacturingId.get(id)!
+                    if (t.action === 'STOCK_IN') {
+                      item.quantity += t.quantity
+                    } else if (t.action === 'STOCK_OUT') {
+                      item.quantity -= t.quantity
                     }
                   }
                 })
 
-                // Convert to array and sort by garment name
-                let stockArray = Array.from(aggregatedStock.values()).sort((a, b) =>
-                  a.garment.localeCompare(b.garment)
+                // Convert to array and sort by manufacturing ID
+                let stockArray = Array.from(stockByManufacturingId.values()).sort((a, b) =>
+                  a.manufacturingId.localeCompare(b.manufacturingId)
                 )
 
                 // Apply filters
@@ -375,31 +375,22 @@ export default function StockRoom() {
                 })
 
                 return stockArray.length > 0 ? (
-                  stockArray.map((item, index) => {
-                    const total = Object.values(item.sizes).reduce((sum, qty) => sum + qty, 0)
-
-                    return (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-center font-semibold text-black">{item.garment}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.color}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.fabricType}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.XXS || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.XS || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.S || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.M || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.L || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.XL || '-'}</td>
-                        <td className="px-4 py-3 text-center text-gray-700">{item.sizes.XXL || '-'}</td>
-                        <td className="px-4 py-3 text-center font-bold text-green-600">{total}</td>
-                      </tr>
-                    )
-                  })
+                  stockArray.map((item, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-center font-semibold text-black">{item.manufacturingId}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{item.garment}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{item.color}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{item.fabricType}</td>
+                      <td className="px-4 py-3 text-center text-gray-700">{item.size}</td>
+                      <td className="px-4 py-3 text-center font-bold text-green-600">{item.quantity}</td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
-                    <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                       No stock available
                     </td>
                   </tr>

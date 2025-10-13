@@ -8,11 +8,10 @@ services:
     rootDir: server
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 4000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -21,6 +20,12 @@ services:
         generateValue: true
       - key: CLIENT_URL
         sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@company.com
 
   # Frontend Static Site
   - type: web

@@ -191,7 +191,32 @@ export default function Manufacturing() {
         }
       }
 
-      const manufacturingId = await generateManufacturingId()
+      // Check if a manufacturing order already exists for this cutting ID + product + size + color
+      // If yes, reuse the same manufacturing ID instead of creating a new one
+      let manufacturingId: string
+      const mfgResponse = await fetch(`${API_URL}/api/manufacturing-orders`)
+      if (mfgResponse.ok) {
+        const existingRecords = await mfgResponse.json()
+        const matchingRecord = existingRecords.find((r: ManufacturingRecord) =>
+          r.cuttingId === formData.cuttingId &&
+          r.productName === formData.productName &&
+          r.size === formData.size &&
+          r.fabricColor === formData.fabricColor &&
+          r.fabricType === formData.fabricType
+        )
+
+        if (matchingRecord) {
+          // Reuse existing manufacturing ID
+          manufacturingId = matchingRecord.manufacturingId
+        } else {
+          // Generate new manufacturing ID only if no match found
+          manufacturingId = await generateManufacturingId()
+        }
+      } else {
+        // Fallback: generate new ID if API call fails
+        manufacturingId = await generateManufacturingId()
+      }
+
       const totalAmount = (parseFloat(formData.quantity) || 0) * (parseFloat(formData.pricePerPiece) || 0)
 
       const manufacturingOrder = {
