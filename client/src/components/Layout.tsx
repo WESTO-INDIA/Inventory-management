@@ -29,7 +29,7 @@ export default function Layout() {
     { path: '/inventory', name: 'Fabric Inventory', icon: CubeIcon },
     { path: '/cutting-inventory', name: 'Cutting Inventory', icon: ChartBarIcon },
     { path: '/manufacturing', name: 'Assign to Tailor', icon: ChartBarIcon },
-    { path: '/manufacturing-inventory', name: 'Manufacturing Inventory', icon: ChartBarIcon },
+    { path: '/manufacturing-inventory', name: 'Manufacturing', icon: ChartBarIcon },
     { path: '/generate-qr', name: 'Garment Inventory', icon: QrCodeIcon },
     { path: '/qr-scanner', name: 'QR Scanner', icon: QrCodeIcon },
     { path: '/transactions', name: 'Transactions', icon: DocumentTextIcon },

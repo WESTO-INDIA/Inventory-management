@@ -168,7 +168,7 @@ export default function ManufacturingInventory() {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Manufacturing Inventory</h1>
+        <h1>Manufacturing</h1>
         <p>Track all manufacturing orders and production history</p>
       </div>
 

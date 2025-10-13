@@ -35,8 +35,8 @@ interface GarmentProduct {
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [filter, setFilter] = useState<'all' | 'add' | 'remove' | 'qr_generated'>('all')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'FABRIC' | 'MANUFACTURING' | 'CUTTING' | 'QR_GENERATED'>('all')
+  const [stockInFilter, setStockInFilter] = useState(false)
+  const [stockOutFilter, setStockOutFilter] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [showAddStockModal, setShowAddStockModal] = useState(false)
@@ -200,20 +200,18 @@ export default function Transactions() {
   }
 
   const filteredTransactions = transactions.filter(transaction => {
-    // Filter by action
-    if (filter !== 'all') {
-      if (filter === 'qr_generated' && transaction.action !== 'QR_GENERATED') {
-        return false
-      } else if (filter === 'add' && transaction.action !== 'ADD' && transaction.action !== 'STOCK_IN') {
-        return false
-      } else if (filter === 'remove' && transaction.action !== 'REMOVE' && transaction.action !== 'STOCK_OUT') {
+    // Filter by Stock In (if enabled)
+    if (stockInFilter) {
+      if (transaction.action !== 'STOCK_IN' && transaction.action !== 'ADD') {
         return false
       }
     }
 
-    // Filter by type
-    if (typeFilter !== 'all' && transaction.itemType !== typeFilter) {
-      return false
+    // Filter by Stock Out (if enabled)
+    if (stockOutFilter) {
+      if (transaction.action !== 'STOCK_OUT' && transaction.action !== 'REMOVE') {
+        return false
+      }
     }
 
     // Filter by search term
@@ -365,44 +363,57 @@ export default function Transactions() {
             }}
           />
 
-          {/* Action Filter */}
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
+          {/* Stock In Filter */}
+          <label
             style={{
-              minWidth: '120px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
               border: '2px solid #000',
               borderRadius: '12px',
-              padding: '10px 16px',
+              cursor: 'pointer',
+              backgroundColor: stockInFilter ? '#10b981' : 'white',
+              color: stockInFilter ? 'white' : '#000',
+              fontWeight: '600',
               fontSize: '14px',
-              backgroundColor: 'white'
+              transition: 'all 0.2s'
             }}
           >
-            <option value="all">All Actions</option>
-            <option value="add">Additions</option>
-            <option value="remove">Removals</option>
-            <option value="qr_generated">QR Generated</option>
-          </select>
+            <input
+              type="checkbox"
+              checked={stockInFilter}
+              onChange={(e) => setStockInFilter(e.target.checked)}
+              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+            Stock In
+          </label>
 
-          {/* Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+          {/* Stock Out Filter */}
+          <label
             style={{
-              minWidth: '120px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
               border: '2px solid #000',
               borderRadius: '12px',
-              padding: '10px 16px',
+              cursor: 'pointer',
+              backgroundColor: stockOutFilter ? '#ef4444' : 'white',
+              color: stockOutFilter ? 'white' : '#000',
+              fontWeight: '600',
               fontSize: '14px',
-              backgroundColor: 'white'
+              transition: 'all 0.2s'
             }}
           >
-            <option value="all">All Types</option>
-            <option value="FABRIC">Fabric</option>
-            <option value="MANUFACTURING">MFG</option>
-            <option value="CUTTING">Cutting</option>
-            <option value="QR_GENERATED">QR Generated</option>
-          </select>
+            <input
+              type="checkbox"
+              checked={stockOutFilter}
+              onChange={(e) => setStockOutFilter(e.target.checked)}
+              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+            />
+            Stock Out
+          </label>
 
           {/* Action Buttons */}
           <button
@@ -498,7 +509,7 @@ export default function Transactions() {
                     <div className="empty-state-icon">📊</div>
                     <h3>No Transactions Found</h3>
                     <p>
-                      {searchTerm || dateFilter || filter !== 'all' || typeFilter !== 'all'
+                      {searchTerm || dateFilter || stockInFilter || stockOutFilter
                         ? 'Try adjusting your filters'
                         : 'Transactions will appear here when you add or remove stock using QR scanner'}
                     </p>

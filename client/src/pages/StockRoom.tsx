@@ -216,58 +216,31 @@ export default function StockRoom() {
 
         {/* Filter Section */}
         <div className="mb-6">
-          {/* Filter Dropdowns */}
+          {/* Filter Text Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <select
+            <input
+              type="text"
               value={filterGarment}
               onChange={(e) => setFilterGarment(e.target.value)}
+              placeholder="Search Garment..."
               className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
-            >
-              <option value="">All Garments</option>
-              {(() => {
-                const garments = new Set<string>()
-                Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
-                  if (g.productName) garments.add(g.productName)
-                })
-                return Array.from(garments).sort().map(garment => (
-                  <option key={garment} value={garment}>{garment}</option>
-                ))
-              })()}
-            </select>
+            />
 
-            <select
+            <input
+              type="text"
               value={filterColor}
               onChange={(e) => setFilterColor(e.target.value)}
+              placeholder="Search Color..."
               className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
-            >
-              <option value="">All Colors</option>
-              {(() => {
-                const colors = new Set<string>()
-                Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
-                  if (g.color && g.color !== 'N/A') colors.add(g.color)
-                })
-                return Array.from(colors).sort().map(color => (
-                  <option key={color} value={color}>{color}</option>
-                ))
-              })()}
-            </select>
+            />
 
-            <select
+            <input
+              type="text"
               value={filterFabricType}
               onChange={(e) => setFilterFabricType(e.target.value)}
+              placeholder="Search Fabric Type..."
               className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-colors"
-            >
-              <option value="">All Fabric Types</option>
-              {(() => {
-                const fabricTypes = new Set<string>()
-                Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
-                  if (g.fabricType && g.fabricType !== 'N/A') fabricTypes.add(g.fabricType)
-                })
-                return Array.from(fabricTypes).sort().map(fabricType => (
-                  <option key={fabricType} value={fabricType}>{fabricType}</option>
-                ))
-              })()}
-            </select>
+            />
 
             <button
               onClick={() => {
@@ -360,16 +333,16 @@ export default function StockRoom() {
                   a.manufacturingId.localeCompare(b.manufacturingId)
                 )
 
-                // Apply filters
+                // Apply filters (case-insensitive partial matching)
                 stockArray = stockArray.filter(item => {
-                  // Filter by garment dropdown
-                  if (filterGarment && item.garment !== filterGarment) return false
+                  // Filter by garment text input
+                  if (filterGarment && !item.garment.toLowerCase().includes(filterGarment.toLowerCase())) return false
 
-                  // Filter by color dropdown
-                  if (filterColor && item.color !== filterColor) return false
+                  // Filter by color text input
+                  if (filterColor && !item.color.toLowerCase().includes(filterColor.toLowerCase())) return false
 
-                  // Filter by fabric type dropdown
-                  if (filterFabricType && item.fabricType !== filterFabricType) return false
+                  // Filter by fabric type text input
+                  if (filterFabricType && !item.fabricType.toLowerCase().includes(filterFabricType.toLowerCase())) return false
 
                   return true
                 })
