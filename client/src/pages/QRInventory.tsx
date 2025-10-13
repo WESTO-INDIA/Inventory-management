@@ -401,30 +401,6 @@ export default function QRInventory() {
           <h1>Garment Inventory</h1>
           <p>Manage garment inventory and QR codes</p>
         </div>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: 'white', padding: '12px 20px', borderRadius: '8px', border: '2px solid #000' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '14px',
-              height: '14px',
-              backgroundColor: '#10b981',
-              borderRadius: '3px',
-              border: '1px solid #059669'
-            }}></div>
-            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Manual Entry</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '14px',
-              height: '14px',
-              backgroundColor: '#000',
-              borderRadius: '3px',
-              border: '1px solid #000'
-            }}></div>
-            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Auto Generated</span>
-          </div>
-        </div>
       </div>
 
       {/* Toolbar */}

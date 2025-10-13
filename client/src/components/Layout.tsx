@@ -5,7 +5,6 @@ import {
   HomeIcon,
   CubeIcon,
   UsersIcon,
-  ClipboardDocumentListIcon,
   QrCodeIcon,
   ChartBarIcon,
   DocumentTextIcon,
@@ -44,8 +43,7 @@ export default function Layout() {
 
   // Employee-only menu items
   const employeeOnlyItems = [
-    { path: '/employee-portal', name: 'My Dashboard', icon: HomeIcon },
-    { path: '/mark-attendance', name: 'Mark Attendance', icon: ClipboardDocumentListIcon },
+    { path: '/stock-room', name: 'Stock Room', icon: HomeIcon },
   ]
 
   // Combine menu items based on role
@@ -56,7 +54,7 @@ export default function Layout() {
   ]
 
   const employeeMenuItems = [
-    employeeOnlyItems[0], // My Dashboard first
+    employeeOnlyItems[0], // Stock Room first
     ...commonMenuItems, // All common items
   ]
 

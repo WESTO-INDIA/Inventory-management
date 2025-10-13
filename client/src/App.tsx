@@ -6,7 +6,6 @@ import ProtectedRoute from './components/ProtectedRoute'
 // Pages
 import Login from './pages/Login'
 import StockRoom from './pages/StockRoom'
-import EmployeePortal from './pages/EmployeePortal'
 import Inventory from './pages/Inventory'
 import CuttingInventory from './pages/CuttingInventory'
 import Manufacturing from './pages/Manufacturing'
@@ -15,7 +14,6 @@ import Employees from './pages/Employees'
 import QRInventory from './pages/QRInventory'
 import Transactions from './pages/Transactions'
 import QRScanner from './pages/QRScanner'
-import MarkAttendance from './pages/MarkAttendance'
 
 function App() {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated)
@@ -24,7 +22,7 @@ function App() {
   // Determine default redirect based on user role
   const getDefaultRoute = () => {
     if (user?.role === 'employee') {
-      return '/employee-portal'
+      return '/stock-room'
     }
     return '/admin-dashboard'
   }
@@ -41,7 +39,6 @@ function App() {
           <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
           <Route path="/admin-dashboard" element={<StockRoom />} />
           <Route path="/stock-room" element={<StockRoom />} />
-          <Route path="/employee-portal" element={<EmployeePortal />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/cutting-inventory" element={<CuttingInventory />} />
           <Route path="/manufacturing" element={<Manufacturing />} />
@@ -50,7 +47,6 @@ function App() {
           <Route path="/employees" element={<Employees />} />
           <Route path="/qr-scanner" element={<QRScanner />} />
           <Route path="/transactions" element={<Transactions />} />
-          <Route path="/mark-attendance" element={<MarkAttendance />} />
         </Route>
       </Route>
 

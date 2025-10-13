@@ -103,42 +103,42 @@
 }
 
 .btn-primary {
-  background: #ffffff;
-  color: #333333;
-  border: 1px solid #d1d5db;
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
 }
 
 .btn-primary:hover {
-  background: #f9fafb;
+  background: #1a1a1a;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .btn-secondary {
-  background: #6b7280;
+  background: #000000;
   color: white;
 }
 
 .btn-secondary:hover {
-  background: #4b5563;
+  background: #1a1a1a;
 }
 
 .btn-success {
-  background: #10b981;
+  background: #000000;
   color: white;
 }
 
 .btn-success:hover {
-  background: #059669;
+  background: #1a1a1a;
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: #000000;
   color: white;
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: #1a1a1a;
 }
 
 .btn-group {
