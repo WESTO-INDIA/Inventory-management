@@ -191,7 +191,21 @@ export default function StockRoom() {
       {/* Stock Inventory Table */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">Stock Inventory</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-black">Stock Inventory</h2>
+            {(() => {
+              // Calculate total unique garments
+              const uniqueGarments = new Set<string>()
+              Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
+                if (g.productName) uniqueGarments.add(g.productName)
+              })
+              return (
+                <p className="text-sm text-gray-600 mt-1">
+                  Total Unique Garments: <span className="font-bold text-black">{uniqueGarments.size}</span>
+                </p>
+              )
+            })()}
+          </div>
           <button
             onClick={fetchStockData}
             className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
