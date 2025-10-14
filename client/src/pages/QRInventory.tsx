@@ -444,7 +444,6 @@ export default function QRInventory() {
                 <th style={{ textAlign: 'center' }}>Fabric Type</th>
                 <th style={{ textAlign: 'center' }}>Color</th>
                 <th style={{ textAlign: 'center' }}>Size</th>
-                <th style={{ textAlign: 'center' }}>Quantity</th>
                 <th style={{ textAlign: 'center' }}>Generated Date</th>
                 <th style={{ textAlign: 'center' }}>QR Code</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
@@ -466,7 +465,6 @@ export default function QRInventory() {
                     <td style={{ textAlign: 'center' }}>{product.fabricType || 'N/A'}</td>
                     <td style={{ textAlign: 'center' }}>{product.color}</td>
                     <td style={{ textAlign: 'center' }}>{product.size}</td>
-                    <td style={{ textAlign: 'center' }}>{product.quantity}</td>
                     <td style={{ textAlign: 'center' }}>{formatDate(product.generatedDate)}</td>
                     <td style={{ textAlign: 'center' }}>
                       {qrCodes.get(product.manufacturingId) ? (
@@ -621,7 +619,7 @@ export default function QRInventory() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     {isLoading ? 'Loading products...' : 'No products found'}
                   </td>
                 </tr>
