@@ -1,144 +1,116 @@
-# Inventory Management System
+# Westo India - Inventory Management System
 
-A modern full-stack inventory management system with real-time tracking, employee management, and manufacturing workflow.
+A simple and efficient inventory management system for garment manufacturing. Track fabrics, manage production, and handle stock with QR codes.
 
-## 🔐 Default Admin Credentials
+## Login Credentials
 
-The admin credentials are configured via environment variables for better security.
-
-**Default Login:**
+**Admin Portal:**
 - Username: `westoindia`
 - Password: `xxxxxxxxx`
 
-To change admin credentials, update these values in the server's `.env` file:
-```env
-ADMIN_USERNAME=your_admin_username
-ADMIN_PASSWORD=your_secure_password
-ADMIN_EMAIL=admin@yourcompany.com
-```
+**Employee Portal:**
+- Contact your admin for employee credentials
 
-**⚠️ Important:** Always change the default credentials in production!
+> Change admin credentials in the server's `.env` file before deploying to production.
 
-## 🚀 Features
+## What It Does
 
-- **Inventory Management** - Track fabrics, materials, and products
-- **Employee Portal** - Attendance tracking with photo verification
-- **Manufacturing** - Track cutting and production processes
-- **QR Code System** - Generate and scan product QR codes
-- **Real-time Dashboard** - Live statistics and metrics
-- **Tailor Management** - Manage tailors and work assignments
+- **Stock Management** - Keep track of fabrics, cutting, and finished garments
+- **QR System** - Generate QR codes for products and scan them for quick stock in/out
+- **Employee Access** - Employees get a simple QR scanner interface
+- **Admin Dashboard** - Full control panel for admins to manage everything
+- **Transaction History** - See who did what and when
+- **Manufacturing Flow** - From fabric to cutting to tailoring to finished products
 
-## 📁 Project Structure
+## How to Run Locally
 
-```
-inventory-management/
-├── client/                # React + TypeScript frontend
-│   ├── src/
-│   │   ├── pages/        # Page components
-│   │   ├── components/   # Reusable components
-│   │   ├── stores/       # State management
-│   │   └── config/       # Configuration
-│   └── dist/            # Production build
-├── server/               # Node.js + Express backend
-│   ├── src/
-│   │   ├── models/      # MongoDB schemas
-│   │   ├── routes/      # REST API endpoints
-│   │   └── middleware/  # Auth & validation
-│   └── dist/           # Compiled TypeScript
-├── render.yaml          # Render deployment config
-└── DEPLOY.md           # Deployment guide
-```
+**You'll need:**
+- Node.js (version 18 or higher)
+- MongoDB (running locally or connection string)
 
-## 🛠️ Tech Stack
+**Setup:**
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite
-- TailwindCSS
-- QR Code Generation & Scanning
-
-**Backend:**
-- Node.js + Express
-- MongoDB + Mongoose
-- REST API
-- JWT Authentication
-- Bcrypt Password Hashing
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- MongoDB
-- Git
-
-### Local Development
-
-1. **Clone and install:**
+1. Clone this project
 ```bash
 git clone https://github.com/WESTO-INDIA/Inventory-management.git
 cd inventory-management
 ```
 
-2. **Setup Backend:**
+2. Start the backend
 ```bash
 cd server
 npm install
 cp .env.example .env
-# Edit .env with your MongoDB URI
+# Edit .env file with your MongoDB connection
 npm run dev
 ```
- 
-3. **Setup Frontend:**
+
+3. Start the frontend (in a new terminal)
 ```bash
 cd client
 npm install
-cp .env.example .env
 npm run dev
 ```
 
-4. **Access:**
+4. Open your browser
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:4000
+- Backend: http://localhost:4000
 
+## Tech Stack
 
-## 🌐 Live Deployment
+**Frontend:** React, TypeScript, TailwindCSS, QR Scanner
+**Backend:** Node.js, Express, MongoDB
+**Security:** JWT auth, bcrypt password hashing
 
-### Production URLs
-- **Backend API:** https://westo-india.onrender.com
-- **Frontend:** [To be deployed on Vercel]
+## Key Features Explained
 
-### Deployment Instructions
+**For Admins:**
+- Full dashboard with all pages
+- Manage inventory across all stages
+- Add/edit employees
+- View all transactions
+- Generate QR codes for products
+
+**For Employees:**
+- Clean, simple interface
+- Only QR scanner access
+- Scan to add or remove stock
+- All transactions are tracked with their name
+
+## Deployment
 
 **Backend (Render):**
-1. Push code to GitHub
-2. Connect to Render
-3. Use build command: `cd server && npm install && npm run build`
-4. Use start command: `cd server && npm start`
+```bash
+Build: cd server && npm install && npm run build
+Start: cd server && npm start
+Add MONGODB_URI in environment variables
+```
 
 **Frontend (Vercel):**
-1. Import GitHub repository to Vercel
-2. Root directory: `client`
-3. Framework preset: Vite
-4. Build settings are auto-configured via `vercel.json`
-5. Environment variable: `VITE_API_URL=https://westo-india.onrender.com`
-
-## 🔐 Environment Variables
-
-**Backend (.env):**
-```
-PORT=4000
-NODE_ENV=production
-MONGODB_URI=mongodb://...
-JWT_SECRET=<generated>
-SESSION_SECRET=<generated>
-CLIENT_URL=https://your-frontend.onrender.com
+```bash
+Root directory: client
+Framework: Vite
+Add VITE_API_URL in environment variables
 ```
 
-**Frontend (.env.production):**
+## Project Structure
+
 ```
-VITE_API_URL=https://westo-india.onrender.com
+inventory-management/
+├── client/          # React frontend
+│   ├── src/
+│   │   ├── pages/   # All pages (Inventory, QR Scanner, etc)
+│   │   └── components/
+├── server/          # Node.js backend
+│   ├── src/
+│   │   ├── models/  # Database schemas
+│   │   └── routes/  # API endpoints
 ```
 
-## 📝 License
+## Need Help?
 
-MIT License - see LICENSE file for details
+Check your MongoDB connection if the backend won't start. Make sure both frontend and backend are running on different ports. The frontend talks to the backend via the API URL.
+
+---
+
+**License:** MIT

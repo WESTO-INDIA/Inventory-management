@@ -446,12 +446,11 @@ export default function Transactions() {
             <thead>
               <tr>
                 <th style={{ textAlign: 'center' }}>Date & Time</th>
-                <th style={{ textAlign: 'center' }}>Item Type</th>
+                <th style={{ textAlign: 'center' }}>Item ID</th>
                 <th style={{ textAlign: 'center' }}>Item Name</th>
                 <th style={{ textAlign: 'center' }}>Fabric Type</th>
                 <th style={{ textAlign: 'center' }}>Color</th>
                 <th style={{ textAlign: 'center' }}>Size</th>
-                <th style={{ textAlign: 'center' }}>Item ID</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
                 <th style={{ textAlign: 'center' }}>Quantity</th>
                 <th style={{ textAlign: 'center' }}>Total Stock</th>
@@ -463,11 +462,7 @@ export default function Transactions() {
                 filteredTransactions.map((transaction) => (
                   <tr key={transaction._id || transaction.id || Math.random()}>
                     <td style={{ textAlign: 'center' }}>{formatDate(transaction.timestamp)}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className={`badge ${getTypeBadgeClass(transaction.itemType)}`}>
-                        {transaction.itemType === 'MANUFACTURING' ? 'MFG' : transaction.itemType}
-                      </span>
-                    </td>
+                    <td style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontWeight: '500' }}>{transaction.itemId}</td>
                     <td style={{ fontWeight: '500', textAlign: 'center' }}>{transaction.itemName}</td>
                     <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
                       {transaction.fabricType || transaction.productInfo?.fabricType || '-'}
@@ -478,7 +473,6 @@ export default function Transactions() {
                     <td style={{ fontSize: '13px', color: '#374151', textAlign: 'center' }}>
                       {transaction.size || transaction.productInfo?.size || '-'}
                     </td>
-                    <td style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>{transaction.itemId}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className={`badge ${getActionBadgeClass(transaction.action)}`}>
                         {transaction.action === 'ADD' || transaction.action === 'STOCK_IN' ? '↑ Stock In' :
@@ -513,7 +507,7 @@ export default function Transactions() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} className="empty-state">
+                  <td colSpan={10} className="empty-state">
                     <div className="empty-state-icon">📊</div>
                     <h3>No Transactions Found</h3>
                     <p>
