@@ -16,6 +16,7 @@ interface ManufacturingRecord {
   tailorName: string
   status: 'Pending' | 'Completed' | 'QR Deleted' | 'deleted'
   createdAt: string
+  completionDate?: string
 }
 
 interface CuttingRecord {
@@ -211,7 +212,8 @@ export default function ManufacturingInventory() {
                 <th style={{ textAlign: 'center' }}>Tailor Name</th>
                 <th style={{ textAlign: 'center' }}>Price/Piece</th>
                 <th style={{ textAlign: 'center' }}>Total Amount</th>
-                <th style={{ textAlign: 'center' }}>Date</th>
+                <th style={{ textAlign: 'center' }}>Assigned Date</th>
+                <th style={{ textAlign: 'center' }}>Completion Date</th>
                 <th style={{ textAlign: 'center' }}>Status</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
@@ -232,6 +234,9 @@ export default function ManufacturingInventory() {
                       ₹{record.totalAmount.toFixed(2)}
                     </td>
                     <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>
+                    <td style={{ textAlign: 'center', color: record.completionDate ? '#059669' : '#6b7280', fontWeight: record.completionDate ? '600' : 'normal' }}>
+                      {record.completionDate ? formatDate(record.completionDate) : '-'}
+                    </td>
                     <td style={{ textAlign: 'center' }}>
                       <select
                         value={record.status}
@@ -266,7 +271,7 @@ export default function ManufacturingInventory() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={13} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     {isLoading ? 'Loading manufacturing inventory...' : 'No manufacturing inventory records found'}
                   </td>
                 </tr>

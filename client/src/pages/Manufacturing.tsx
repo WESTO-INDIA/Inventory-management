@@ -33,6 +33,7 @@ interface ManufacturingRecord {
   totalAmount: number
   status?: string
   createdAt: string
+  completionDate?: string
 }
 
 interface ManufacturingForm {
@@ -147,7 +148,8 @@ export default function Manufacturing() {
               }
             })
 
-            setAvailableSizes(sizeBreakdownWithRemaining.filter(s => s.remainingQuantity > 0))
+            const availableSizesFiltered = sizeBreakdownWithRemaining.filter(s => s.remainingQuantity > 0)
+            setAvailableSizes(availableSizesFiltered)
 
             // Auto-fill the fields
             setFormData({
@@ -156,6 +158,11 @@ export default function Manufacturing() {
               fabricColor: cuttingRecord.fabricColor,
               productName: cuttingRecord.productName
             })
+
+            // Check if all cuttings are already assigned
+            if (availableSizesFiltered.length === 0 && sizeBreakdownWithRemaining.length > 0) {
+              alert('✅ All cutting assigned for this Cutting ID')
+            }
           }
         } else {
           alert('❌ Cutting ID not found.')
@@ -181,66 +188,70 @@ export default function Manufacturing() {
     setIsLoading(true)
 
     try {
-      // Validate that quantity doesn't exceed available quantity for selected size
-      if (formData.size && availableSizes.length > 0) {
-        const selectedSize = availableSizes.find(s => s.size === formData.size)
-        if (selectedSize && parseInt(formData.quantity) > selectedSize.remainingQuantity) {
-          alert(`❌ Quantity (${formData.quantity}) exceeds remaining quantity for size ${formData.size} (${selectedSize.remainingQuantity})`)
+      // Check if "Select All" is chosen
+      if (formData.size === 'ALL') {
+        // Assign all available sizes to the tailor
+        if (availableSizes.length === 0) {
+          alert('❌ No sizes available to assign')
           setIsLoading(false)
           return
         }
-      }
 
-      // Check if a manufacturing order already exists for this cutting ID + product + size + color
-      // If yes, reuse the same manufacturing ID instead of creating a new one
-      let manufacturingId: string
-      const mfgResponse = await fetch(`${API_URL}/api/manufacturing-orders`)
-      if (mfgResponse.ok) {
-        const existingRecords = await mfgResponse.json()
-        const matchingRecord = existingRecords.find((r: ManufacturingRecord) =>
-          r.cuttingId === formData.cuttingId &&
-          r.productName === formData.productName &&
-          r.size === formData.size &&
-          r.fabricColor === formData.fabricColor &&
-          r.fabricType === formData.fabricType
-        )
+        let successCount = 0
+        const pricePerPiece = parseFloat(formData.pricePerPiece) || 0
 
-        if (matchingRecord) {
-          // Reuse existing manufacturing ID
-          manufacturingId = matchingRecord.manufacturingId
-        } else {
-          // Generate new manufacturing ID only if no match found
-          manufacturingId = await generateManufacturingId()
+        // Get existing manufacturing records
+        const mfgResponse = await fetch(`${API_URL}/api/manufacturing-orders`)
+        const existingRecords = mfgResponse.ok ? await mfgResponse.json() : []
+
+        // Create manufacturing order for each available size
+        for (const sizeOption of availableSizes) {
+          // Check if a manufacturing order already exists for this combination
+          const matchingRecord = existingRecords.find((r: ManufacturingRecord) =>
+            r.cuttingId === formData.cuttingId &&
+            r.productName === formData.productName &&
+            r.size === sizeOption.size &&
+            r.fabricColor === formData.fabricColor &&
+            r.fabricType === formData.fabricType
+          )
+
+          const manufacturingId = matchingRecord
+            ? matchingRecord.manufacturingId
+            : await generateManufacturingId()
+
+          const quantity = sizeOption.remainingQuantity
+          const totalAmount = quantity * pricePerPiece
+
+          const manufacturingOrder = {
+            manufacturingId,
+            cuttingId: formData.cuttingId,
+            fabricType: formData.fabricType,
+            fabricColor: formData.fabricColor,
+            productName: formData.productName,
+            quantity: quantity,
+            size: sizeOption.size,
+            tailorName: formData.tailorName,
+            pricePerPiece: pricePerPiece,
+            totalAmount: totalAmount,
+            status: 'Pending'
+          }
+
+          const response = await fetch(`${API_URL}/api/manufacturing-orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(manufacturingOrder)
+          })
+
+          if (response.ok) {
+            successCount++
+          }
         }
-      } else {
-        // Fallback: generate new ID if API call fails
-        manufacturingId = await generateManufacturingId()
-      }
 
-      const totalAmount = (parseFloat(formData.quantity) || 0) * (parseFloat(formData.pricePerPiece) || 0)
-
-      const manufacturingOrder = {
-        manufacturingId,
-        cuttingId: formData.cuttingId,
-        fabricType: formData.fabricType,
-        fabricColor: formData.fabricColor,
-        productName: formData.productName,
-        quantity: parseInt(formData.quantity),
-        size: formData.size,
-        tailorName: formData.tailorName,
-        pricePerPiece: parseFloat(formData.pricePerPiece) || 0,
-        totalAmount: totalAmount,
-        status: 'Pending'
-      }
-
-      const response = await fetch(`${API_URL}/api/manufacturing-orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(manufacturingOrder)
-      })
-
-      if (response.ok) {
-        alert(`✅ Order ${manufacturingId} assigned to ${formData.tailorName} successfully!`)
+        if (successCount === availableSizes.length) {
+          alert(`✅ All ${successCount} sizes assigned to ${formData.tailorName} successfully!`)
+        } else {
+          alert(`⚠️ ${successCount} out of ${availableSizes.length} sizes assigned successfully`)
+        }
 
         // Reset form
         setFormData({
@@ -258,8 +269,87 @@ export default function Manufacturing() {
         // Refresh records
         fetchManufacturingRecords()
       } else {
-        const errorText = await response.text()
-        alert('❌ Error assigning to tailor: ' + errorText)
+        // Original logic for single size assignment
+        // Validate that quantity doesn't exceed available quantity for selected size
+        if (formData.size && availableSizes.length > 0) {
+          const selectedSize = availableSizes.find(s => s.size === formData.size)
+          if (selectedSize && parseInt(formData.quantity) > selectedSize.remainingQuantity) {
+            alert(`❌ Quantity (${formData.quantity}) exceeds remaining quantity for size ${formData.size} (${selectedSize.remainingQuantity})`)
+            setIsLoading(false)
+            return
+          }
+        }
+
+        // Check if a manufacturing order already exists for this cutting ID + product + size + color
+        // If yes, reuse the same manufacturing ID instead of creating a new one
+        let manufacturingId: string
+        const mfgResponse = await fetch(`${API_URL}/api/manufacturing-orders`)
+        if (mfgResponse.ok) {
+          const existingRecords = await mfgResponse.json()
+          const matchingRecord = existingRecords.find((r: ManufacturingRecord) =>
+            r.cuttingId === formData.cuttingId &&
+            r.productName === formData.productName &&
+            r.size === formData.size &&
+            r.fabricColor === formData.fabricColor &&
+            r.fabricType === formData.fabricType
+          )
+
+          if (matchingRecord) {
+            // Reuse existing manufacturing ID
+            manufacturingId = matchingRecord.manufacturingId
+          } else {
+            // Generate new manufacturing ID only if no match found
+            manufacturingId = await generateManufacturingId()
+          }
+        } else {
+          // Fallback: generate new ID if API call fails
+          manufacturingId = await generateManufacturingId()
+        }
+
+        const totalAmount = (parseFloat(formData.quantity) || 0) * (parseFloat(formData.pricePerPiece) || 0)
+
+        const manufacturingOrder = {
+          manufacturingId,
+          cuttingId: formData.cuttingId,
+          fabricType: formData.fabricType,
+          fabricColor: formData.fabricColor,
+          productName: formData.productName,
+          quantity: parseInt(formData.quantity),
+          size: formData.size,
+          tailorName: formData.tailorName,
+          pricePerPiece: parseFloat(formData.pricePerPiece) || 0,
+          totalAmount: totalAmount,
+          status: 'Pending'
+        }
+
+        const response = await fetch(`${API_URL}/api/manufacturing-orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(manufacturingOrder)
+        })
+
+        if (response.ok) {
+          alert(`✅ Order ${manufacturingId} assigned to ${formData.tailorName} successfully!`)
+
+          // Reset form
+          setFormData({
+            cuttingId: '',
+            fabricType: '',
+            fabricColor: '',
+            productName: '',
+            quantity: '',
+            size: '',
+            tailorName: '',
+            pricePerPiece: ''
+          })
+          setAvailableSizes([])
+
+          // Refresh records
+          fetchManufacturingRecords()
+        } else {
+          const errorText = await response.text()
+          alert('❌ Error assigning to tailor: ' + errorText)
+        }
       }
     } catch (error) {
       console.error('Error:', error)
@@ -273,7 +363,9 @@ export default function Manufacturing() {
     fetchManufacturingRecords()
   }, [])
 
-  const totalAmount = (parseFloat(formData.quantity) || 0) * (parseFloat(formData.pricePerPiece) || 0)
+  const totalAmount = formData.size === 'ALL'
+    ? availableSizes.reduce((sum, s) => sum + s.remainingQuantity, 0) * (parseFloat(formData.pricePerPiece) || 0)
+    : (parseFloat(formData.quantity) || 0) * (parseFloat(formData.pricePerPiece) || 0)
 
   return (
     <div className="page-container">
@@ -351,12 +443,22 @@ export default function Manufacturing() {
                   required
                 >
                   <option value="">Select Size</option>
+                  <option value="ALL">Select All</option>
                   {availableSizes.map((sizeOption) => (
                     <option key={sizeOption.size} value={sizeOption.size}>
                       {sizeOption.size} (Available: {sizeOption.remainingQuantity})
                     </option>
                   ))}
                 </select>
+              ) : formData.cuttingId && formData.fabricType ? (
+                <div>
+                  <input
+                    type="text"
+                    value="All cutting assigned"
+                    readOnly
+                    style={{ background: '#f9fafb', color: '#059669', fontWeight: 'bold' }}
+                  />
+                </div>
               ) : (
                 <input
                   type="text"
@@ -372,20 +474,31 @@ export default function Manufacturing() {
 
             <div className="form-group">
               <label htmlFor="quantity">Qty *</label>
-              <input
-                type="number"
-                id="quantity"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                placeholder="Enter quantity"
-                min="1"
-                required
-              />
-              {formData.size && availableSizes.length > 0 && (
-                <small style={{ color: '#000000', fontSize: '12px' }}>
-                  Available for {formData.size}: {availableSizes.find(s => s.size === formData.size)?.remainingQuantity || 0}
-                </small>
+              {formData.size === 'ALL' ? (
+                <input
+                  type="text"
+                  value={`Total: ${availableSizes.reduce((sum, s) => sum + s.remainingQuantity, 0)} pcs`}
+                  readOnly
+                  style={{ background: '#f9fafb', color: '#000000', fontWeight: 'bold' }}
+                />
+              ) : (
+                <>
+                  <input
+                    type="number"
+                    id="quantity"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    placeholder="Enter quantity"
+                    min="1"
+                    required
+                  />
+                  {formData.size && availableSizes.length > 0 && formData.size !== 'ALL' && (
+                    <small style={{ color: '#000000', fontSize: '12px' }}>
+                      Available for {formData.size}: {availableSizes.find(s => s.size === formData.size)?.remainingQuantity || 0}
+                    </small>
+                  )}
+                </>
               )}
             </div>
 
@@ -471,13 +584,14 @@ export default function Manufacturing() {
                 <th style={{ textAlign: 'center' }}>Tailor Name</th>
                 <th style={{ textAlign: 'center' }}>Price/Piece</th>
                 <th style={{ textAlign: 'center' }}>Total Amount</th>
-                <th style={{ textAlign: 'center' }}>Date</th>
+                <th style={{ textAlign: 'center' }}>Assigned Date</th>
+                <th style={{ textAlign: 'center' }}>Completion Date</th>
               </tr>
             </thead>
             <tbody>
               {isLoadingRecords ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     Loading tailor assignments...
                   </td>
                 </tr>
@@ -496,11 +610,14 @@ export default function Manufacturing() {
                       ₹{record.totalAmount?.toFixed(2) || '0.00'}
                     </td>
                     <td style={{ textAlign: 'center' }}>{formatDate(record.createdAt)}</td>
+                    <td style={{ textAlign: 'center', color: record.completionDate ? '#059669' : '#6b7280', fontWeight: record.completionDate ? '600' : 'normal' }}>
+                      {record.completionDate ? formatDate(record.completionDate) : '-'}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     No tailor assignments found
                   </td>
                 </tr>

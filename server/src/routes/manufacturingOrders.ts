@@ -135,6 +135,11 @@ router.put('/:id', async (req, res) => {
     if (status) {
       manufacturingOrder.status = status
 
+      // Set completion date when status changes to Completed or QR Deleted
+      if (status === 'Completed' || status === 'QR Deleted') {
+        manufacturingOrder.completionDate = new Date()
+      }
+
       // If status is changed to "QR Deleted", delete the associated QR product from QR inventory
       if (status === 'QR Deleted') {
         const QRProduct = require('../models/QRProduct').QRProduct
@@ -166,10 +171,18 @@ router.put('/bulk-status/:manufacturingId', async (req, res) => {
       return res.status(404).json({ message: 'No manufacturing orders found with this ID' })
     }
 
+    // Prepare update object
+    const updateData: any = { status }
+
+    // Set completion date when status changes to Completed or QR Deleted
+    if (status === 'Completed' || status === 'QR Deleted') {
+      updateData.completionDate = new Date()
+    }
+
     // Update all records to the new status
     const updateResult = await ManufacturingOrder.updateMany(
       { manufacturingId },
-      { $set: { status } }
+      { $set: updateData }
     )
 
     // If status is "QR Deleted", also delete the associated QR products

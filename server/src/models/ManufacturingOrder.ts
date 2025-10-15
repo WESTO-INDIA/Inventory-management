@@ -12,6 +12,7 @@ export interface IManufacturingOrder extends Document {
   pricePerPiece: number
   totalAmount: number
   status: 'Pending' | 'Completed' | 'QR Deleted' | 'deleted'
+  completionDate?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -75,6 +76,10 @@ const ManufacturingOrderSchema: Schema = new Schema({
     required: true,
     enum: ['Pending', 'Completed', 'QR Deleted', 'deleted'],
     default: 'Pending'
+  },
+  completionDate: {
+    type: Date,
+    required: false
   }
 }, {
   timestamps: true

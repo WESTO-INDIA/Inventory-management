@@ -29,7 +29,6 @@ export default function QRScanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [qrScanner, setQrScanner] = useState<QrScanner | null>(null)
   const [isMobile, setIsMobile] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -230,10 +229,10 @@ export default function QRScanner() {
             const basicStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
             basicStream.getTracks().forEach(track => track.stop())
           } catch {
-            throw new Error('Camera access failed. Please try using the image upload option.')
+            throw new Error('Camera access failed. Please try manual entry.')
           }
         } else {
-          throw new Error(`Camera access failed: ${permError.message || 'Please try using the image upload option.'}`)
+          throw new Error(`Camera access failed: ${permError.message || 'Please try manual entry.'}`)
         }
       }
 
@@ -318,7 +317,7 @@ export default function QRScanner() {
             throw new Error('No cameras available')
           }
         } catch (fallbackError) {
-          throw new Error(`Camera initialization failed. Please use the "Upload Image" option to scan QR codes.`)
+          throw new Error(`Camera initialization failed. Please use manual entry to scan QR codes.`)
         }
       }
 
@@ -351,33 +350,6 @@ export default function QRScanner() {
       setQrScanner(null)
     }
     setScanMode(false)
-  }
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsLoading(true)
-    try {
-      const result = await QrScanner.scanImage(file, {
-        returnDetailedScanResult: true,
-        alsoTryWithoutScanRegion: true
-      })
-
-      if (result && result.data) {
-        await processScannedData(result.data)
-      } else {
-        showMessage('error', 'No QR code found in the image')
-      }
-    } catch (error) {
-      showMessage('error', 'Failed to scan QR code from image')
-    } finally {
-      setIsLoading(false)
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
   }
 
   return (
@@ -522,39 +494,12 @@ export default function QRScanner() {
                     borderRadius: '4px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    fontSize: '16px',
-                    marginRight: '8px'
+                    fontSize: '16px'
                   }}
                   disabled={isLoading}
                 >
                   📷 Start Scanner
                 </button>
-
-                {/* File upload option */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                  id="qr-file-upload"
-                />
-                <label
-                  htmlFor="qr-file-upload"
-                  style={{
-                    padding: '12px 24px',
-                    background: 'white',
-                    color: '#000',
-                    border: '2px solid #000',
-                    borderRadius: '4px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    display: 'inline-block'
-                  }}
-                >
-                  📁 Upload Image
-                </label>
               </div>
             )}
 
