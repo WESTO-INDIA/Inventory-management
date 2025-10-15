@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import QrScanner from 'qr-scanner'
 import { API_URL } from '@/config/api'
+import { useAuthStore } from '@/stores/authStore'
 import '../styles/common.css'
 
 interface ScannedProduct {
@@ -19,6 +20,7 @@ interface ScannedProduct {
 }
 
 export default function QRScanner() {
+  const user = useAuthStore(state => state.user)
   const [scanMode, setScanMode] = useState(false)
   const [manualCode, setManualCode] = useState('')
   const [scannedProduct, setScannedProduct] = useState<ScannedProduct | null>(null)
@@ -150,7 +152,7 @@ export default function QRScanner() {
           quantity: quantity,
           previousStock: scannedProduct.currentStock,
           newStock: newQuantity,
-          performedBy: 'QR Scanner',
+          performedBy: user?.name || 'Unknown User',
           source: 'QR_SCANNER'
         })
       })

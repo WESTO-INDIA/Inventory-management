@@ -24,8 +24,9 @@ export default function Layout() {
     navigate('/login')
   }
 
-  // Common menu items for both admin and employees
-  const commonMenuItems = [
+  // Admin menu items - all pages
+  const adminMenuItems = [
+    { path: '/admin-dashboard', name: 'Stock Room', icon: HomeIcon },
     { path: '/inventory', name: 'Fabric Inventory', icon: CubeIcon },
     { path: '/cutting-inventory', name: 'Cutting Inventory', icon: ChartBarIcon },
     { path: '/manufacturing', name: 'Assign to Tailor', icon: ChartBarIcon },
@@ -33,29 +34,12 @@ export default function Layout() {
     { path: '/generate-qr', name: 'Garment Inventory', icon: QrCodeIcon },
     { path: '/qr-scanner', name: 'QR Scanner', icon: QrCodeIcon },
     { path: '/transactions', name: 'Transactions', icon: DocumentTextIcon },
-  ]
-
-  // Admin-only menu items
-  const adminOnlyItems = [
-    { path: '/admin-dashboard', name: 'Stock Room', icon: HomeIcon },
     { path: '/employees', name: 'Employees', icon: UsersIcon },
   ]
 
-  // Employee-only menu items
-  const employeeOnlyItems = [
-    { path: '/stock-room', name: 'Stock Room', icon: HomeIcon },
-  ]
-
-  // Combine menu items based on role
-  const adminMenuItems = [
-    adminOnlyItems[0], // Admin Dashboard first
-    ...commonMenuItems, // All common items
-    ...adminOnlyItems.slice(1), // Rest of admin-only items
-  ]
-
+  // Employee menu items - only QR Scanner
   const employeeMenuItems = [
-    employeeOnlyItems[0], // Stock Room first
-    ...commonMenuItems, // All common items
+    { path: '/qr-scanner', name: 'QR Scanner', icon: QrCodeIcon },
   ]
 
   const menuItems = user?.role === 'admin' ? adminMenuItems : employeeMenuItems

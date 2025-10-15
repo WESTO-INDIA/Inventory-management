@@ -455,6 +455,7 @@ export default function Transactions() {
                 <th style={{ textAlign: 'center' }}>Action</th>
                 <th style={{ textAlign: 'center' }}>Quantity</th>
                 <th style={{ textAlign: 'center' }}>Total Stock</th>
+                <th style={{ textAlign: 'center' }}>Performed By</th>
               </tr>
             </thead>
             <tbody>
@@ -501,11 +502,18 @@ export default function Transactions() {
                     }}>
                       {transaction.newStock}
                     </td>
+                    <td style={{
+                      textAlign: 'center',
+                      fontWeight: '500',
+                      color: '#374151'
+                    }}>
+                      {transaction.performedBy || 'Unknown'}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={10} className="empty-state">
+                  <td colSpan={11} className="empty-state">
                     <div className="empty-state-icon">📊</div>
                     <h3>No Transactions Found</h3>
                     <p>
