@@ -39,7 +39,7 @@ function App() {
         {/* Admin Routes - with sidebar */}
         {user?.role === 'admin' && (
           <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/admin-dashboard" element={<StockRoom />} />
             <Route path="/stock-room" element={<StockRoom />} />
             <Route path="/inventory" element={<Inventory />} />
@@ -56,13 +56,13 @@ function App() {
         {/* Employee Routes - without sidebar */}
         {user?.role === 'employee' && (
           <Route element={<EmployeeLayout />}>
-            <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/qr-scanner" element={<QRScanner />} />
           </Route>
         )}
       </Route>
 
-      <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
+      <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   )
 }
