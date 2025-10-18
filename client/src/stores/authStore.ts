@@ -87,12 +87,24 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        isAuthenticated: state.isAuthenticated,
-        loginTimestamp: state.loginTimestamp
-      })
+      // pahle  ZUSTAND storage auth in local which create login issue now i clear it with session storage 
+      
+      // Use sessionStorage instead of localStorage
+      // This will clear the session when the browser tab is closed
+      storage: {
+        getItem: (name) => {
+          const str = sessionStorage.getItem(name)
+          return str ? JSON.parse(str) : null
+        },
+        setItem: (name, value) => {
+          sessionStorage.setItem(name, JSON.stringify(value))
+        },
+        // perfect it make sense all done 
+        // agar auth mmei kuch issue aata hai to mai local storage ko bhi clear kar dunga
+        removeItem: (name) => {
+          sessionStorage.removeItem(name)
+        }
+      }
     }
   )
 )
