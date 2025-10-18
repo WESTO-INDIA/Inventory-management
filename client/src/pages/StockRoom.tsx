@@ -11,6 +11,8 @@ interface GarmentStock {
   quantity: number
   tailorName: string
   generatedDate: string
+  completionDate?: string
+  updatedAt?: string
 }
 
 interface Transaction {
@@ -72,6 +74,8 @@ export default function StockRoom() {
             quantity: order.quantity || 0,
             tailorName: order.tailorName,
             generatedDate: order.createdAt,
+            completionDate: order.completionDate,
+            updatedAt: order.updatedAt,
             fabricType: order.fabricType || 'N/A'
           })) : []
         garmentList.push(...manufacturingList)
@@ -113,6 +117,8 @@ export default function StockRoom() {
             quantity: product.quantity || 0,
             tailorName: product.tailorName || 'N/A',
             generatedDate: product.createdAt || product.generatedDate,
+            completionDate: product.completionDate,
+            updatedAt: product.updatedAt,
             fabricType: product.fabricType || 'N/A'
           })) : []
         garmentList.push(...qrEntries)
@@ -277,6 +283,7 @@ export default function StockRoom() {
                   fabricType: string
                   size: string
                   quantity: number
+                  lastUpdated: string
                 }>()
 
                 // Collect data from garmentStocks (base manufacturing orders)
@@ -284,11 +291,17 @@ export default function StockRoom() {
                 // We need to aggregate them by manufacturingId
                 Array.isArray(garmentStocks) && garmentStocks.forEach((g: any) => {
                   const id = g.productId
+                  // Determine the last updated time - priority: completionDate > updatedAt > generatedDate
+                  const lastUpdated = g.completionDate || g.updatedAt || g.generatedDate || new Date().toISOString()
 
                   if (stockByManufacturingId.has(id)) {
                     // If this manufacturing ID already exists, add to its quantity
                     const existing = stockByManufacturingId.get(id)!
                     existing.quantity += g.quantity || 0
+                    // Update lastUpdated to the most recent one
+                    if (new Date(lastUpdated) > new Date(existing.lastUpdated)) {
+                      existing.lastUpdated = lastUpdated
+                    }
                   } else {
                     // Create new entry
                     stockByManufacturingId.set(id, {
@@ -297,7 +310,8 @@ export default function StockRoom() {
                       color: g.color || 'N/A',
                       fabricType: g.fabricType || 'N/A',
                       size: g.size || 'N/A',
-                      quantity: g.quantity || 0
+                      quantity: g.quantity || 0,
+                      lastUpdated: lastUpdated
                     })
                   }
                 })
@@ -306,6 +320,7 @@ export default function StockRoom() {
                 Array.isArray(transactions) && transactions.forEach((t: any) => {
                   if (t.itemType === 'MANUFACTURING' || t.itemType === 'QR_GENERATED') {
                     const id = t.itemId
+                    const transactionTime = t.timestamp || new Date().toISOString()
 
                     // If manufacturing ID doesn't exist, create it from transaction
                     if (!stockByManufacturingId.has(id)) {
@@ -315,7 +330,8 @@ export default function StockRoom() {
                         color: t.color || 'N/A',
                         fabricType: t.fabricType || 'N/A',
                         size: t.size || 'N/A',
-                        quantity: 0
+                        quantity: 0,
+                        lastUpdated: transactionTime
                       })
                     }
 
@@ -325,13 +341,20 @@ export default function StockRoom() {
                     } else if (t.action === 'STOCK_OUT') {
                       item.quantity -= t.quantity
                     }
+                    // Update lastUpdated to the transaction time if it's more recent
+                    if (new Date(transactionTime) > new Date(item.lastUpdated)) {
+                      item.lastUpdated = transactionTime
+                    }
                   }
                 })
 
-                // Convert to array and sort by manufacturing ID
-                let stockArray = Array.from(stockByManufacturingId.values()).sort((a, b) =>
-                  a.manufacturingId.localeCompare(b.manufacturingId)
-                )
+                // Convert to array and sort by last updated time (newest first)
+                let stockArray = Array.from(stockByManufacturingId.values()).sort((a, b) => {
+                  // Sort by lastUpdated in descending order (newest first)
+                  const dateA = new Date(a.lastUpdated).getTime()
+                  const dateB = new Date(b.lastUpdated).getTime()
+                  return dateB - dateA
+                })
 
                 // Apply filters (case-insensitive partial matching)
                 stockArray = stockArray.filter(item => {

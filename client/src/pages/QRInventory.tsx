@@ -16,6 +16,7 @@ interface QRProduct {
   cuttingId?: string
   isManual?: boolean
   createdAt?: string
+  completionDate?: string
 }
 
 interface ManufacturingRecord {
@@ -30,6 +31,7 @@ interface ManufacturingRecord {
   cuttingId: string
   status: string
   createdAt?: string
+  completionDate?: string
 }
 
 export default function QRInventory() {
@@ -73,6 +75,12 @@ export default function QRInventory() {
             // Manufacturing ID already exists, add to quantity
             const existing = groupedByManufacturingId.get(mfgId)!
             existing.quantity += record.quantity || 0
+            // Update completionDate to the latest one
+            if (record.completionDate && (!existing.completionDate || new Date(record.completionDate) > new Date(existing.completionDate))) {
+              existing.completionDate = record.completionDate
+              // Update generatedDate to match the latest completionDate
+              existing.generatedDate = record.completionDate
+            }
           } else {
             // Create new entry
             groupedByManufacturingId.set(mfgId, {
@@ -83,10 +91,11 @@ export default function QRInventory() {
               color: record.fabricColor,
               size: record.size || 'N/A',
               quantity: record.quantity || 0,
-              generatedDate: record.createdAt || new Date().toISOString(),
+              generatedDate: record.completionDate || record.createdAt || new Date().toISOString(),
               tailorName: record.tailorName,
               cuttingId: record.cuttingId,
               createdAt: record.createdAt,
+              completionDate: record.completionDate,
               isManual: false
             })
           }
@@ -123,15 +132,19 @@ export default function QRInventory() {
           })
         }
 
-        // Sort by creation date - newest first
+        // Sort by completion date - newest completed first
         const sortedProducts = qrProductsList.sort((a, b) => {
           // Parse dates properly
           let dateA = 0
           let dateB = 0
 
           try {
-            // For manual products created just now
-            if (a.isManual && a.createdAt) {
+            // Priority 1: Use completionDate if available (when QR was generated)
+            // Priority 2: Use createdAt for manual products
+            // Priority 3: Use generatedDate
+            if (a.completionDate) {
+              dateA = new Date(a.completionDate).getTime()
+            } else if (a.isManual && a.createdAt) {
               dateA = new Date(a.createdAt).getTime()
             } else if (a.createdAt) {
               dateA = new Date(a.createdAt).getTime()
@@ -141,7 +154,9 @@ export default function QRInventory() {
               dateA = Date.now()
             }
 
-            if (b.isManual && b.createdAt) {
+            if (b.completionDate) {
+              dateB = new Date(b.completionDate).getTime()
+            } else if (b.isManual && b.createdAt) {
               dateB = new Date(b.createdAt).getTime()
             } else if (b.createdAt) {
               dateB = new Date(b.createdAt).getTime()

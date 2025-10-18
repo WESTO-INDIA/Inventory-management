@@ -36,6 +36,11 @@ interface ManufacturingRecord {
   completionDate?: string
 }
 
+interface EditPriceForm {
+  recordId: string
+  pricePerPiece: string
+}
+
 interface ManufacturingForm {
   cuttingId: string
   fabricType: string
@@ -62,6 +67,8 @@ export default function Manufacturing() {
   const [manufacturingRecords, setManufacturingRecords] = useState<ManufacturingRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingRecords, setIsLoadingRecords] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<EditPriceForm | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const fetchManufacturingRecords = async () => {
     setIsLoadingRecords(true)
@@ -89,6 +96,62 @@ export default function Manufacturing() {
     } catch (error) {
       return dateString
     }
+  }
+
+  const handleEditClick = (record: ManufacturingRecord) => {
+    setEditingRecord({
+      recordId: record._id,
+      pricePerPiece: record.pricePerPiece.toString()
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editingRecord) {
+      setEditingRecord({
+        ...editingRecord,
+        pricePerPiece: e.target.value
+      })
+    }
+  }
+
+  const handleSavePrice = async () => {
+    if (!editingRecord) return
+
+    try {
+      const record = manufacturingRecords.find(r => r._id === editingRecord.recordId)
+      if (!record) return
+
+      const newPricePerPiece = parseFloat(editingRecord.pricePerPiece) || 0
+      const newTotalAmount = record.quantity * newPricePerPiece
+
+      const response = await fetch(`${API_URL}/api/manufacturing-orders/${editingRecord.recordId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pricePerPiece: newPricePerPiece,
+          totalAmount: newTotalAmount
+        })
+      })
+
+      if (response.ok) {
+        alert('✅ Price updated successfully!')
+        setIsEditModalOpen(false)
+        setEditingRecord(null)
+        fetchManufacturingRecords()
+      } else {
+        const errorText = await response.text()
+        alert('❌ Error updating price: ' + errorText)
+      }
+    } catch (error) {
+      console.error('Error updating price:', error)
+      alert('❌ Error updating price. Please try again.')
+    }
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingRecord(null)
   }
 
   const generateManufacturingId = async () => {
@@ -586,12 +649,13 @@ export default function Manufacturing() {
                 <th style={{ textAlign: 'center' }}>Total Amount</th>
                 <th style={{ textAlign: 'center' }}>Assigned Date</th>
                 <th style={{ textAlign: 'center' }}>Completion Date</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoadingRecords ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     Loading tailor assignments...
                   </td>
                 </tr>
@@ -613,11 +677,49 @@ export default function Manufacturing() {
                     <td style={{ textAlign: 'center', color: record.completionDate ? '#059669' : '#6b7280', fontWeight: record.completionDate ? '600' : 'normal' }}>
                       {record.completionDate ? formatDate(record.completionDate) : '-'}
                     </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleEditClick(record)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '4px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                        }}
+                        title="Edit Price"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     No tailor assignments found
                   </td>
                 </tr>
@@ -626,6 +728,101 @@ export default function Manufacturing() {
           </table>
         </div>
       </div>
+
+      {/* Edit Price Modal */}
+      {isEditModalOpen && editingRecord && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={handleCloseEditModal}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '400px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginBottom: '20px', color: '#374151', fontSize: '20px' }}>Edit Price</h2>
+
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label htmlFor="editPricePerPiece">Price Per Piece (₹) *</label>
+              <input
+                type="number"
+                id="editPricePerPiece"
+                value={editingRecord.pricePerPiece}
+                onChange={handleEditPriceChange}
+                placeholder="Enter price per piece"
+                min="0"
+                step="0.01"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            {(() => {
+              const record = manufacturingRecords.find(r => r._id === editingRecord.recordId)
+              const newTotal = record ? record.quantity * (parseFloat(editingRecord.pricePerPiece) || 0) : 0
+              return (
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label>Total Amount (₹)</label>
+                  <input
+                    type="text"
+                    value={`₹${newTotal.toFixed(2)}`}
+                    readOnly
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      background: '#f9fafb',
+                      color: '#000000',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                </div>
+              )
+            })()}
+
+            <div className="btn-group" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={handleSavePrice}
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCloseEditModal}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
